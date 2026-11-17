@@ -959,4 +959,11 @@ config INPUT_STPMIC1_ONKEY
 	  To compile this driver as a module, choose M here: the
 	  module will be called stpmic1_onkey.
 
+config INPUT_XIAOMI_HALL
+	tristate "Xiaomi lid hall sensor"
+	depends on OF
+	help
+	  Reports the keyboard cover of Xiaomi tablets as SW_LID, from the
+	  open and close interrupts the ADSP raises over SMP2P.
+
 endif
