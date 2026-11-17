@@ -2894,8 +2894,15 @@ module_param(ignore_foreign, bool, 0644);
 static bool module_is_foreign(struct load_info *info)
 {
 	static const char key[] = "vermagic=";
-	const char *p = info->hdr ? memmem(info->hdr, info->len, key, sizeof(key) - 1) : NULL;
-	size_t rel = strlen(UTS_RELEASE);
+	const char *buf = (const char *)info->hdr, *p = NULL;
+	size_t rel = strlen(UTS_RELEASE), i;
+
+	for (i = 0; buf && i + sizeof(key) - 1 <= info->len; i++) {
+		if (!memcmp(buf + i, key, sizeof(key) - 1)) {
+			p = buf + i;
+			break;
+		}
+	}
 
 	/* Built for another kernel release: "vermagic=<release> ..." */
 	if (!p || (const char *)info->hdr + info->len - p < sizeof(key) - 1 + rel)
