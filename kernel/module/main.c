@@ -2893,9 +2893,15 @@ module_param(ignore_foreign, bool, 0644);
 
 static bool module_is_foreign(struct load_info *info)
 {
-	const char *modmagic = get_modinfo(info, "vermagic");
+	static const char key[] = "vermagic=";
+	const char *p = info->hdr ? memmem(info->hdr, info->len, key, sizeof(key) - 1) : NULL;
+	size_t rel = strlen(UTS_RELEASE);
 
-	return modmagic && !same_magic(modmagic, vermagic, info->index.vers);
+	/* Built for another kernel release: "vermagic=<release> ..." */
+	if (!p || (const char *)info->hdr + info->len - p < sizeof(key) - 1 + rel)
+		return false;
+	p += sizeof(key) - 1;
+	return strncmp(p, UTS_RELEASE, rel) || (p[rel] != ' ' && p[rel] != '\0');
 }
 
 /*
@@ -2922,6 +2928,20 @@ static int load_module(struct load_info *info, const char __user *uargs,
 	 * off the sig length at the end of the module, making
 	 * checks against info->len more correct.
 	 */
+	/* Checked on the raw image: such modules can fail any later check. */
+	if (ignore_foreign && module_is_foreign(info)) {
+		pr_info("module built for another kernel, load ignored\n");
+		err = 0;
+		goto free_copy;
+	}
+
+	/* Checked on the raw image: such modules can fail any later check. */
+	if (ignore_foreign && module_is_foreign(info)) {
+		pr_info("module built for another kernel, load ignored\n");
+		err = 0;
+		goto free_copy;
+	}
+
 	err = module_sig_check(info, flags);
 	if (err)
 		goto free_copy;
@@ -2936,14 +2956,8 @@ static int load_module(struct load_info *info, const char __user *uargs,
 		goto free_copy;
 
 	err = early_mod_check(info, flags);
-	if (err) {
-		if (ignore_foreign && module_is_foreign(info)) {
-			pr_info("%s: built for another kernel, ignored\n",
-				info->name);
-			err = 0;
-		}
+	if (err)
 		goto free_copy;
-	}
 
 	/* Figure out module layout, and allocate all the memory. */
 	mod = layout_and_allocate(info, flags);
