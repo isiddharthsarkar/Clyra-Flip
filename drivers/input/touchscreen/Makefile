@@ -118,3 +118,8 @@ obj-$(CONFIG_TOUCHSCREEN_IQS5XX)	+= iqs5xx.o
 obj-$(CONFIG_TOUCHSCREEN_IQS7211)	+= iqs7211.o
 obj-$(CONFIG_TOUCHSCREEN_ZINITIX)	+= zinitix.o
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_HX83112B)	+= himax_hx83112b.o
+
+# Xiaomi ruan touch (Novatek NT36532 SPI) and Xiaomi touch helpers
+obj-$(CONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI)	+= nt36532_spi/
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	+= lct_tp/
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	+= xiaomi/
