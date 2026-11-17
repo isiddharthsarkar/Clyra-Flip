@@ -1003,4 +1003,6 @@ config BQ_FG_UPDATE
 
 source "drivers/power/supply/qcom/Kconfig"
 
+source "drivers/power/supply/battery_secret/Kconfig"
+
 endif # POWER_SUPPLY

@@ -119,3 +119,4 @@ endif
 obj-$(CONFIG_CHARGER_QCOM_SMB2)	+= qcom_pmi8998_charger.o
 obj-$(CONFIG_SCHGM_FLASH)       += schgm-flash.o
 obj-$(CONFIG_QCOM_POWER_SUPPLY)	+= qcom/
+obj-$(CONFIG_BATT_VERIFY)	+= battery_secret/
