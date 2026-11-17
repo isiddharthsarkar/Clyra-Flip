@@ -3,7 +3,9 @@
  * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
+#include <linux/of.h>
 #include "phy-qcom-ufs-qmp-v4-waipio.h"
+#include "phy-qcom-ufs-qmp-v4-parrot.h"
 
 #define UFS_PHY_NAME "ufs_phy_qmp_v4_waipio"
 
@@ -36,7 +38,15 @@ static int ufs_qcom_phy_qmp_v4_phy_calibrate(struct phy *generic_phy)
 	 * 2. Write 2nd lane configuration if needed.
 	 * 3. Write Rate-B calibration overrides
 	 */
-	if (is_g4) {
+	if (is_g4 && of_device_is_compatible(dev->of_node,
+					     "qcom,ufs-phy-qmp-v4-parrot")) {
+		ufs_qcom_phy_write_tbl(ufs_qcom_phy, phy_cal_table_rate_A_parrot,
+				       ARRAY_SIZE(phy_cal_table_rate_A_parrot));
+		if (ufs_qcom_phy->lanes_per_direction == 2)
+			ufs_qcom_phy_write_tbl(ufs_qcom_phy,
+					phy_cal_table_2nd_lane_parrot,
+					ARRAY_SIZE(phy_cal_table_2nd_lane_parrot));
+	} else if (is_g4) {
 		ufs_qcom_phy_write_tbl(ufs_qcom_phy, phy_cal_table_rate_A,
 				       ARRAY_SIZE(phy_cal_table_rate_A));
 		if (ufs_qcom_phy->lanes_per_direction == 2)
