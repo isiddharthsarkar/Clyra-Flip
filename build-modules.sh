@@ -28,14 +28,13 @@ qcom/opensource/mm-drivers/msm_ext_display
 qcom/opensource/mm-drivers/sync_fence
 qcom/opensource/synx-kernel-v1
 qcom/opensource/display-drivers/msm
-qcom/opensource/eva-kernel-v1
 qcom/opensource/graphics-kernel
 qcom/opensource/bt-kernel
 qcom/opensource/dsp-kernel
 qcom/opensource/touch-drivers
 qcom/opensource/video-driver
 qcom/opensource/wlan/platform
-qcom/opensource/wlan/qcacld-3.0/.adrastea
+qcom/opensource/wlan/qcacld-3.0/.qca6750
 nxp/opensource/driver
 "}
 SYMS=""
