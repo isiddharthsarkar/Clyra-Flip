@@ -45,11 +45,23 @@ mkdtboimg create $W/dtbo66.img --page_size=4096 $T/ruan.dtbo
 REL=$(cat $O/include/config/kernel.release)
 L=$T/lib/modules; mkdir -p $L
 lists="$K/modules.list.msm.parrot $DEV/modules/modules.list.first_stage $DEV/modules/modules.list.second_stage $DEV/modules/modules.list.vendor_dlkm"
-grep -hv '^\s*#' $lists | grep . > $T/order
-for m in $(cat $T/order); do
-	f=$(find $O $MODS -name "$m" -print -quit 2>/dev/null || true)
-	[ -n "$f" ] || { echo "missing $m" >&2; continue; }
-	$CLANG/llvm-strip --strip-debug -o $L/$m $f
+grep -hv '^\s*#' $lists | grep . | awk '!seen[$0]++' > $T/order
+# Pull in every dependency of the listed modules, as the ROM build does with
+# TARGET_AUTO_COLLECT_KERNEL_MODULE_DEPS (modules.dep lets modprobe load them).
+find $O $MODS -name "*.ko" > $T/all
+findko() { grep -m1 -E "/($1|$(echo $1 | tr _ -)|$(echo $1 | tr - _))\.ko$" $T/all || true; }
+todo=$(sed 's/\.ko$//' $T/order); done_=" "
+while [ -n "$todo" ]; do
+	next=""
+	for m in $todo; do
+		case "$done_" in *" $m "*) continue;; esac
+		done_="$done_$m "
+		f=$(findko $m)
+		[ -n "$f" ] || { echo "missing $m" >&2; continue; }
+		$CLANG/llvm-strip --strip-debug -o $L/$(basename $f) $f
+		next="$next $(modinfo -F depends $f | tr ',' ' ')"
+	done
+	todo=$next
 done
 mkdir -p $T/depmod/lib/modules/$REL && cp $L/*.ko $T/depmod/lib/modules/$REL/
 depmod -b $T/depmod $REL
