@@ -2882,6 +2882,23 @@ static int early_mod_check(struct load_info *info, int flags)
 }
 
 /*
+ * ruan bring-up: testing a 6.6 kernel on a ROM built for 5.10, the ROM's
+ * vendor module loader keeps trying its 5.10 modules and init waits for
+ * it to succeed. module.ignore_foreign=1 makes a module built for another
+ * kernel (version magic mismatch) report success without loading it.
+ * Modules built for this kernel are not affected. Off by default.
+ */
+static bool ignore_foreign;
+module_param(ignore_foreign, bool, 0644);
+
+static bool module_is_foreign(struct load_info *info)
+{
+	const char *modmagic = get_modinfo(info, "vermagic");
+
+	return modmagic && !same_magic(modmagic, vermagic, info->index.vers);
+}
+
+/*
  * Allocate and load the module: note that size of section 0 is always
  * zero, and we rely on this for optional sections.
  */
@@ -2919,8 +2936,14 @@ static int load_module(struct load_info *info, const char __user *uargs,
 		goto free_copy;
 
 	err = early_mod_check(info, flags);
-	if (err)
+	if (err) {
+		if (ignore_foreign && module_is_foreign(info)) {
+			pr_info("%s: built for another kernel, ignored\n",
+				info->name);
+			err = 0;
+		}
 		goto free_copy;
+	}
 
 	/* Figure out module layout, and allocate all the memory. */
 	mod = layout_and_allocate(info, flags);
