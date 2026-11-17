@@ -4,16 +4,19 @@
 #   ruan/mkimg66.sh <dir with the ROM's boot.img and vendor_boot.img>
 #
 # boot66.img         the ROM's boot image with the 6.6 kernel
-# vendor_boot66.img  the 6.6 dtb (parrot base + SoC + ruan overlays already
-#                    applied) and every ruan 6.6 module in the vendor
-#                    ramdisk, loaded by first stage init
-# dtbo66.img         one ruan entry that applies nothing, so the bootloader
-#                    does not apply the stock 5.10 overlay on top
+# vendor_boot66.img  the 6.6 base dtb (parrot + SoC overlays) and every
+#                    ruan 6.6 module in the vendor ramdisk, loaded by first
+#                    stage init
+# dtbo66.img         ruan's board, display, audio and camera overlays merged
+#                    into one entry (as the ROM build's merge_dtbs.py does),
+#                    applied by the bootloader. The bootloader needs a real
+#                    board overlay: an empty entry drops it to fastboot.
 #
 # The ROM's own 5.10 modules on vendor_dlkm fail to load, which is harmless.
 # Flash all three; flash the saved stock images back to return.
 #
 # Environment: O (kernel out, ../out-ruan66), MODS (../sm7435-modules),
+# MERGE (fdtoverlaymerge, built from LineageOS android_external_dtc),
 # DEV (device tree with modules/ lists), CMDLINE (extra vendor cmdline).
 set -euo pipefail
 K=$(cd "$(dirname "$0")/.." && pwd)
@@ -23,6 +26,7 @@ MODS=${MODS:-$K/../sm7435-modules}
 DEV=${DEV:-/mnt/directstorage/trees/device_xiaomi_ruan}
 T=$W/tmp66
 CLANG=$K/../clang-r563880c/bin
+MERGE=${MERGE:-$K/../tools/lin-dtc/fdtoverlaymerge}
 rm -rf "$T" && mkdir -p "$T"
 
 D=$O/arch/arm64/boot/dts/vendor/qcom
@@ -30,30 +34,12 @@ fdtoverlay -i $D/parrot.dtb -o $T/ruan66.dtb \
 	$D/display/display/parrot-sde.dtbo $D/camera/parrot-camera.dtbo \
 	$D/audio/parrot-audio.dtbo $D/data/parrot-ipa.dtbo \
 	$D/dsp/parrot/parrot-dsp.dtbo $D/graphics/gpu/parrot-gpu.dtbo \
-	$D/nfc/nxp/parrot-nfc.dtbo $D/video/parrot-vidc.dtbo \
-	$D/ruan-sm7435-overlay.dtbo $D/display/display/ruan-sde-display-overlay.dtbo \
-	$D/audio/ruan-audio-qrd.dtbo $D/camera/ruan-camera-sensor.dtbo
+	$D/nfc/nxp/parrot-nfc.dtbo $D/video/parrot-vidc.dtbo
 
-# dtbo: ruan's ids with an empty fragment
-cat > $T/noop.dts <<'DTS'
-/dts-v1/;
-/plugin/;
-/ {
-	model = "Qualcomm Technologies, Inc. Parrot QRD, RUAN based on SM7435";
-	compatible = "qcom,parrot-qrd", "qcom,parrot", "qcom,qrd";
-	qcom,msm-id = <634 0x10000>, <631 0x10000>, <583 0x10000>, <537 0x10000>,
-			<613 0x10000>, <633 0x10000>, <638 0x10000>;
-	qcom,board-id = <0x3000B 1>;
-	qcom,pmic-id = <0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x2e>;
-	qcom,pmic-id-size = <9>;
-	fragment@0 {
-		target-path = "/";
-		__overlay__ { };
-	};
-};
-DTS
-dtc -q -@ -I dts -O dtb $T/noop.dts -o $T/noop.dtbo
-mkdtboimg create $W/dtbo66.img --page_size=4096 $T/noop.dtbo
+# dtbo: ruan's four overlays merged into one entry
+$MERGE -i $D/ruan-sm7435-overlay.dtbo $D/display/display/ruan-sde-display-overlay.dtbo \
+	$D/audio/ruan-audio-qrd.dtbo $D/camera/ruan-camera-sensor.dtbo -o $T/ruan.dtbo >/dev/null
+mkdtboimg create $W/dtbo66.img --page_size=4096 $T/ruan.dtbo
 
 # modules: all lists, in load order, stripped, with a fresh modules.dep
 REL=$(cat $O/include/config/kernel.release)
