@@ -435,6 +435,15 @@ config QTI_BATTERY_CHARGER
 	  To compile the driver as a module, choose M here: the module will be
 	  called qti_battery_charger.
 
+config QTI_BATTERY_CHARGER_RUAN
+	bool "Use the Xiaomi ruan charger firmware interface"
+	depends on QTI_BATTERY_CHARGER
+	help
+	  Build the battery charger driver with the Xiaomi property layout
+	  that the ruan (Redmi Pad Pro) ADSP charger firmware uses. The
+	  Xiaomi property ids are an index into the firmware's table, so
+	  they have to match that firmware exactly.
+
 config SCHGM_FLASH
 	tristate "charger flash"
 	depends on QTI_BATTERY_CHARGER
