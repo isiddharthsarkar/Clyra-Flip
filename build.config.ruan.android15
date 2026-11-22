@@ -7,12 +7,13 @@ export DEVICE=ruan
 export MSM_ARCH=parrot
 
 # Configs: base GKI -> platform (parrot) -> device (ruan) -> Android version fragment -> debugfs
+# Paths are relative to arch/arm64/configs/ as required by kbuild defconfig handling.
 export CONFIG_FILES="\
-    arch/arm64/configs/gki_defconfig \
-    arch/arm64/configs/vendor/parrot_GKI.config \
-    arch/arm64/configs/vendor/ruan_GKI.config \
-    arch/arm64/configs/vendor/ruan_android15.config \
-    arch/arm64/configs/vendor/debugfs.config"
+    gki_defconfig \
+    vendor/parrot_GKI.config \
+    vendor/ruan_GKI.config \
+    vendor/ruan_android15.config \
+    vendor/debugfs.config"
 
 # Build both first-stage and vendor_dlkm module sets so HyperOS and AOSP
 # vendor ramdisks can load them.
