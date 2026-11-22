@@ -30,6 +30,9 @@ on:
       - 'arch/arm64/configs/vendor/**'
       - 'build.config.*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -41,6 +44,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
@@ -78,44 +82,48 @@ jobs:
 
       - name: Download AOSP clang-r416183b
         run: |
+          set -euo pipefail
           mkdir -p ~/clyra-tools
           cd ~/clyra-tools
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/clang-r416183b.tar.gz
+          # Download clang-r416183b from Android CI
+          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/clang-r416183b.tar.gz -O clang-r416183b.tar.gz
           tar -xzf clang-r416183b.tar.gz
           ~/clyra-tools/clang-r416183b/bin/clang --version
 
       - name: Determine build matrix
         id: matrix
         run: |
+          set -euo pipefail
           DEVICE="${{ github.event.inputs.device }}"
           ANDROID="${{ github.event.inputs.android }}"
-          
+
           if [ "$DEVICE" = "all" ]; then
             DEVICES="ruan dizi"
           else
             DEVICES="$DEVICE"
           fi
-          
+
           if [ "$ANDROID" = "all" ]; then
             ANDROIDS="android14 android15 android16 android17"
           else
             ANDROIDS="$ANDROID"
           fi
-          
+
           echo "devices=$DEVICES" >> $GITHUB_OUTPUT
           echo "androids=$ANDROIDS" >> $GITHUB_OUTPUT
 
       - name: Build all kernel combinations
         run: |
+          set -euo pipefail
           CLANG_DIR=~/clyra-tools/clang-r416183b
-          
+
           for dev in ${{ steps.matrix.outputs.devices }}; do
             for ver in ${{ steps.matrix.outputs.androids }}; do
               echo "========================================"
               echo "Building $dev $ver"
               echo "========================================"
-              ./build.sh $CLANG_DIR $dev $ver
-              
+              ./build.sh "$CLANG_DIR" "$dev" "$ver"
+
               # Verify build output
               if [ ! -f "out-${dev}66.${ver}/arch/arm64/boot/Image" ]; then
                 echo "ERROR: Build failed for $dev $ver - Image not found"
@@ -127,11 +135,17 @@ jobs:
 
       - name: Package universal flashable zip
         run: |
+          set -euo pipefail
           ./flashable/package.sh .
 
       - name: Verify zip contents
         run: |
-          ZIP=$(ls clyra-flip-kernel-universal-*.zip)
+          set -euo pipefail
+          ZIP=$(ls clyra-flip-kernel-universal-*.zip 2>/dev/null | head -1)
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No universal zip found"
+            exit 1
+          fi
           echo "Zip created: $ZIP"
           unzip -l "$ZIP"
 
@@ -143,15 +157,20 @@ jobs:
           retention-days: 7
 
       - name: Upload to GitHub Release v1.0.0
-        if: github.event.inputs.upload_release == 'true' || github.event_name == 'push'
+        if: (github.event.inputs.upload_release == 'true' || github.event_name == 'push') && success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ZIP=$(ls clyra-flip-kernel-universal-*.zip)
+          set -euo pipefail
+          ZIP=$(ls clyra-flip-kernel-universal-*.zip 2>/dev/null | head -1)
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No universal zip found for release upload"
+            exit 1
+          fi
           echo "Uploading $ZIP to release v1.0.0..."
-          
+
           # Check if release v1.0.0 exists
-          if gh release view v1.0.0 --json tagName -q .tagName 2>/dev/null | grep -q "v1.0.0"; then
+          if gh release view v1.0.0 --json tagName -q '.tagName' 2>/dev/null | grep -q "v1.0.0"; then
             echo "Release v1.0.0 exists, uploading asset..."
             gh release upload v1.0.0 "$ZIP" --clobber
           else
@@ -159,7 +178,7 @@ jobs:
             gh release create v1.0.0 \
               --title "Clyra-Flip Kernel v1.0.0" \
               --notes "Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).
-              
+
 Built with GitHub Actions on ${{ github.run_id }}
 Kernel: Linux 6.6.144-Clyra-Flip
 Devices: ruan, dizi
@@ -170,10 +189,11 @@ Features: KernelSU, susfs, CAF/Qualcomm platform support
 Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version."
             gh release upload v1.0.0 "$ZIP" --clobber
           fi
-          
+
           echo "Upload complete!"
 
       - name: Print release URL
+        if: always()
         run: |
           echo "========================================"
           echo "Build complete!"
