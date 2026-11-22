@@ -606,4 +606,20 @@ source "drivers/misc/pvpanic/Kconfig"
 source "drivers/misc/mchp_pci1xxxx/Kconfig"
 source "drivers/misc/hwid/Kconfig"
 source "drivers/misc/simtray/Kconfig"
+
+config XIAOMI_HYPEROS_SUPPORT
+	bool "Xiaomi HyperOS / AOSP device support"
+	default y
+	help
+	  Enable Xiaomi device-specific support required by both HyperOS
+	  and stock AOSP builds on ruan (SM7435) devices.
+
+	  This includes:
+	  - Ruan battery charger properties (qti_battery_charger_ruan)
+	  - Xiaomi hall-sensor (lid) detection
+	  - Xiaomi thermal interface
+	  - Ruan bring-up aid (panic_after) for debug builds
+
+	  Say Y here if building for HyperOS or AOSP on Xiaomi ruan devices.
+
 endmenu
