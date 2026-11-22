@@ -64,8 +64,8 @@ jobs:
             zip \
             python3 \
             python3-pip \
-            aarch64-linux-gnu-gcc \
-            arm-linux-gnueabi-gcc \
+            gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabi \
             rsync \
             file \
             make \
@@ -79,6 +79,7 @@ jobs:
           which aarch64-linux-gnu-gcc || echo "WARNING: aarch64-linux-gnu-gcc not found"
           which arm-linux-gnueabi-gcc || echo "WARNING: arm-linux-gnueabi-gcc not found"
           aarch64-linux-gnu-gcc --version | head -1 || true
+          arm-linux-gnueabi-gcc --version | head -1 || true
 
       - name: Download AOSP clang-r416183b
         run: |
