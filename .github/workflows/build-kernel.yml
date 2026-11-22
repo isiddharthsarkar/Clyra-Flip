@@ -88,30 +88,47 @@ jobs:
       - name: Setup AOSP clang
         run: |
           set -euo pipefail
-          # Install AOSP-compatible clang via LLVM apt repository.
-          # Ubuntu system clang 21.x is too new and produces different symbol CRCs,
-          # breaking KMI compatibility with stock vendor modules.
-          # clang-14 or clang-15 is mandatory - no fallback to system clang.
-          echo "Adding LLVM apt repository..."
-          sudo apt-get update -qq
-          sudo apt-get install -y wget gnupg curl
-          wget -q -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
-          UBUNTU_CODENAME=$(lsb_release -cs)
+          # Install AOSP-compatible clang. Ubuntu system clang 21.x is too new
+          # and produces different symbol CRCs, breaking KMI compatibility with
+          # stock vendor modules. AOSP clang is mandatory - no fallback.
           CLANG_VERSION=""
+          
+          # Try installing clang-15 or clang-14 directly from Ubuntu repos first
           for VER in 15 14; do
-            echo "Trying clang-${VER} for ${UBUNTU_CODENAME}..."
-            echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${VER} main" | sudo tee /etc/apt/sources.list.d/llvm.list
-            sudo apt-get update -qq 2>&1 | tail -5
-            if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | tail -5 | grep -q "E: Unable to locate package"; then
-              echo "clang-${VER} not available for ${UBUNTU_CODENAME}"
+            echo "Trying clang-${VER} from Ubuntu repos..."
+            sudo apt-get update -qq
+            if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -q "E: Unable to locate package"; then
+              echo "clang-${VER} not in Ubuntu repos"
               continue
             fi
             if command -v clang-${VER} >/dev/null 2>&1; then
               CLANG_VERSION=${VER}
-              echo "clang-${VER} installed successfully"
+              echo "clang-${VER} installed from Ubuntu repos"
               break
             fi
           done
+          
+          # If not in Ubuntu repos, try LLVM apt repository
+          if [ -z "$CLANG_VERSION" ]; then
+            echo "Adding LLVM apt repository..."
+            wget -q -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+            UBUNTU_CODENAME=$(lsb_release -cs)
+            for VER in 15 14; do
+              echo "Trying clang-${VER} via LLVM repo for ${UBUNTU_CODENAME}..."
+              echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${VER} main" | sudo tee /etc/apt/sources.list.d/llvm.list
+              sudo apt-get update -qq 2>&1 | tail -5
+              if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -q "E: Unable to locate package"; then
+                echo "clang-${VER} not available via LLVM repo for ${UBUNTU_CODENAME}"
+                continue
+              fi
+              if command -v clang-${VER} >/dev/null 2>&1; then
+                CLANG_VERSION=${VER}
+                echo "clang-${VER} installed via LLVM repo"
+                break
+              fi
+            done
+          fi
+          
           if [ -z "$CLANG_VERSION" ]; then
             echo "ERROR: No AOSP-compatible clang could be installed" >&2
             exit 1
