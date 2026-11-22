@@ -101,11 +101,15 @@ jobs:
             curl -L -f -s -o android-ndk.zip \
               "https://dl.google.com/android/repository/android-ndk-r26b-linux.zip"
             unzip -q android-ndk.zip
-            # Search for clang binary anywhere in NDK (look for *clang* executables, not just "clang")
-            CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64/bin -name "*clang*" -type f -executable 2>/dev/null | grep -v "clang++" | head -1)
+            # Search for clang binary anywhere in NDK (look for aarch64-linux-android clang compiler)
+            CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64/bin -name "aarch64-linux-android*-clang" -type f -executable 2>/dev/null | head -1)
             if [ -z "$CLANG_BIN" ]; then
-                # Fallback: any clang* executable in NDK
-                CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b -name "*clang*" -type f -executable 2>/dev/null | grep -v "clang++" | head -1)
+                # Fallback: any clang* executable in NDK bin, excluding git-clang-format and clang++
+                CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64/bin -name "*clang*" -type f -executable 2>/dev/null | grep -v "clang++" | grep -v "git-clang-format" | head -1)
+            fi
+            if [ -z "$CLANG_BIN" ]; then
+                # Last resort: any clang* executable in entire NDK
+                CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b -name "*clang*" -type f -executable 2>/dev/null | grep -v "clang++" | grep -v "git-clang-format" | head -1)
             fi
             if [ -n "$CLANG_BIN" ]; then
                 CLANG_DIR=$(dirname "$CLANG_BIN")
