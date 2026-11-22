@@ -33,7 +33,10 @@ device drivers both skins rely on:
 - `CONFIG_INPUT_XIAOMI_HALL` — lid hall sensor
 - `CONFIG_MI_THERMAL_INTERFACE` — Xiaomi thermal interface
 
-Enable them with `CONFIG_XIAOMI_HYPEROS_SUPPORT=y` (default on).
+The individual drivers are enabled by default in
+`arch/arm64/configs/vendor/ruan_GKI.config` (and inherited by all
+Android-version fragments). `CONFIG_XIAOMI_HYPEROS_SUPPORT` documents
+this grouping but does not select any additional code.
 
 ## Redmi and POCO Pen support
 

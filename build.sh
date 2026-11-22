@@ -54,7 +54,9 @@ else
     $M gki_defconfig vendor/parrot_GKI.config vendor/ruan_GKI.config vendor/debugfs.config
 fi
 
-[ ${#TARGETS[@]} -gt 0 ] || set -- Image modules dtbs
-# Restore positional args to the targets collected above.
-set -- "${TARGETS[@]}"
+if [ ${#TARGETS[@]} -gt 0 ]; then
+    set -- "${TARGETS[@]}"
+else
+    set -- Image modules dtbs
+fi
 $M -j$(nproc) "$@"

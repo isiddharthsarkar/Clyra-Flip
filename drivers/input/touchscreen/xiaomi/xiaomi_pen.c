@@ -7,31 +7,32 @@
  * so userspace can read pen contact, pressure, buttons and tilt.
  *
  * Relies on the Xiaomi touch feature (touchscreen/xiaomi/xiaomi_touch.c)
- * for pen connection state via update_pen_connect_strategy_value().
+ * for pen connection state via Touch_Pen_ENABLE mode.
  */
 
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/input.h>
-#include <linux/input/mt.h>
 #include <linux/delay.h>
 #include <linux/workqueue.h>
 #include <linux/slab.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
-#include <linux/debugfs.h>
-#include <linux/limits.h>
 
 #include "xiaomi_touch.h"
 
 #define XIAOMI_PEN_NAME "Redmi/POCO Pen"
 
+/*
+ * Pen pressure is not exposed as a separate Xiaomi touch mode on ruan;
+ * report a fixed nominal pressure while the pen is in contact.
+ */
+#define XIAOMI_PEN_PRESSURE_NOMINAL 512
+
 struct xiaomi_pen {
 	struct input_dev *input;
 	struct xiaomi_touch *touch;
-	bool pen_active;
 	struct delayed_work pen_work;
-	struct dentry *debugfs_dir;
 	bool pen_present;
 };
 
@@ -64,23 +65,17 @@ static void xiaomi_pen_report(struct work_struct *work)
 			input_report_key(pen->input, BTN_TOUCH, 0);
 			input_report_key(pen->input, BTN_STYLUS, 0);
 			input_report_key(pen->input, BTN_STYLUS2, 0);
-			input_report_abs(pen->input, ABS_DISTANCE, INT_MAX);
+			input_report_abs(pen->input, ABS_DISTANCE, 1);
 			input_report_abs(pen->input, ABS_PRESSURE, 0);
 		}
 		input_sync(pen->input);
 	}
 
 	if (present) {
-		int pressure = xiaomi_pen_get_mode_value(pen->touch,
-							 Touch_Pen_ENABLE);
-		if (pressure > 0) {
-			input_report_key(pen->input, BTN_TOUCH, 1);
-			input_report_abs(pen->input, ABS_PRESSURE,
-					clamp(pressure, 0, 1023));
-		} else {
-			input_report_key(pen->input, BTN_TOUCH, 0);
-			input_report_abs(pen->input, ABS_PRESSURE, 0);
-		}
+		/* Contact / pressure derived from pen enabled state */
+		input_report_key(pen->input, BTN_TOUCH, 1);
+		input_report_abs(pen->input, ABS_PRESSURE,
+				 XIAOMI_PEN_PRESSURE_NOMINAL);
 		input_sync(pen->input);
 		schedule_delayed_work(&pen->pen_work, msecs_to_jiffies(20));
 	}
@@ -97,13 +92,7 @@ static DEVICE_ATTR_RO(pen_present);
 static ssize_t pen_pressure_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
-	struct xiaomi_pen *pen = dev_get_drvdata(dev);
-	int pressure;
-
-	pressure = xiaomi_pen_get_mode_value(pen->touch, Touch_Pen_ENABLE);
-	if (pressure < 0)
-		pressure = 0;
-	return scnprintf(buf, PAGE_SIZE, "%d\n", pressure);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", XIAOMI_PEN_PRESSURE_NOMINAL);
 }
 static DEVICE_ATTR_RO(pen_pressure);
 
@@ -156,7 +145,7 @@ static int xiaomi_pen_probe(struct platform_device *pdev)
 	input_set_abs_params(pen->input, ABS_X, 0, 65535, 0, 0);
 	input_set_abs_params(pen->input, ABS_Y, 0, 65535, 0, 0);
 	input_set_abs_params(pen->input, ABS_PRESSURE, 0, 1023, 0, 0);
-	input_set_abs_params(pen->input, ABS_DISTANCE, 0, INT_MAX, 0, 0);
+	input_set_abs_params(pen->input, ABS_DISTANCE, 0, 1, 0, 0);
 	input_set_abs_params(pen->input, ABS_TILT_X, -60, 60, 0, 0);
 	input_set_abs_params(pen->input, ABS_TILT_Y, -60, 60, 0, 0);
 
