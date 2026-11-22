@@ -55,8 +55,10 @@ jobs:
             bison \
             flex \
             libssl-dev \
+            libelf-dev \
             libncurses5-dev \
             libncursesw5-dev \
+            dwarves \
             xz-utils \
             tar \
             gzip \
