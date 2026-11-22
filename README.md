@@ -307,27 +307,123 @@ echo 1 > /susfs/unhide  # show root again
 KernelSU works with all supported ROMs (HyperOS, AOSP, OneUI 8+, ColorOS,
 etc.) because it hooks at the kernel credential layer, below the ROM level.
 
-## CAF / Qualcomm support
+## CAF / Qualcomm support — FULL
 
-Clyra-Flip includes **CAF (Code Aurora Forum)** Qualcomm platform support
-for the SM7435 SoC used by ruan and dizi:
+Clyra-Flip includes **full CAF (Code Aurora Forum)** Qualcomm platform support
+for the SM7435 SoC used by ruan and dizi. The CAF layer is organized into
+subsystems under `drivers/caf/`, each with its own Kconfig, Makefile, and
+device tree bindings.
 
-| Subsystem | Config | Description |
-|-----------|--------|-------------|
-| QCOM SMEM | `CONFIG_QCOM_SMEM` | Shared memory for inter-processor comms |
-| QCOM SMD RPM | `CONFIG_QCOM_SMD_RPM` | Shared memory doorbell for RPM |
-| QCOM SPMI | `CONFIG_QCOM_SPMI_*` | System Power Management Interface |
-| QCOM PDC | `CONFIG_QCOM_PDC` | Power Debug Controller |
-| QCOM RPMH | `CONFIG_QCOM_RPMH_*` | Runtime Power Management Hierarchy |
-| QCOM CPR | `CONFIG_QCOM_CPR` | Critical Path Regression |
-| QCOM LLCC | `CONFIG_QCOM_LLCC` | Last Level Cache Coherency |
-| QCOM QUPV3 I2C | `CONFIG_QCOM_QUPV3_I2C` | Qualcomm Universal Peripheral |
-| QCOM PHY | `CONFIG_QCOM_USB_*_PHY` | USB PHY drivers |
-| QCOM Clock | `CONFIG_QCOM_CLOCK_*` | Clock controllers |
-| QCOM PINCTRL | `CONFIG_PINCTRL_QCOM` | Pin control |
-| QCOM GPIO | `CONFIG_GPIO_QCOM` | GPIO controller |
-| QCOM Power | `CONFIG_QCOM_POWER` | Power management |
-| QCOM ICC | `CONFIG_QCOM_ICC_*` | Interconnect |
+### CAF Platform Core
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| CAF Platform Core | `CONFIG_ARCH_QCOM_CAF` | `y` | Master enable for all CAF/Qualcomm platform support |
+| QCOM SMEM | `CONFIG_QCOM_SMEM` | `y` | Shared memory for inter-processor comms |
+| QCOM SMD RPM | `CONFIG_QCOM_SMD_RPM` | `y` | Shared memory doorbell for RPM |
+| QCOM SMEM State | `CONFIG_QCOM_SMEM_STATE` | `y` | SMEM state tracking |
+| QCOM SMEM SDP | `CONFIG_QCOM_SMEM_SDP` | `y` | SMEM Secure Data Path |
+| QCOM RMTFS MEM | `CONFIG_QCOM_RMTFS_MEM` | `y` | Remote filesystem memory |
+| QCOM GENI SE | `CONFIG_QCOM_GENI_SE` | `y` | GENI Security Engine |
+| QCOM GENI SMEM IPC | `CONFIG_QCOM_GENI_SMEM_IPC` | `y` | GENI SMEM inter-processor comms |
+
+### CAF Power Management
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| QCOM SPMI PMIC | `CONFIG_QCOM_SPMI_PMIC` | `y` | SPMI Power Management IC |
+| QCOM SPMI ADSP | `CONFIG_QCOM_SPMI_ADSP` | `y` | SPMI Audio DSP |
+| QCOM SPMI PMIC ARB | `CONFIG_QCOM_SPMI_PMIC_ARB` | `y` | SPMI PMIC arbiter |
+| QCOM SPMI Wrapper | `CONFIG_QCOM_SPMI_WRAPPER` | `y` | SPMI wrapper |
+| QCOM PDC | `CONFIG_QCOM_PDC` | `y` | Power Debug Controller |
+| QCOM RPMH | `CONFIG_QCOM_RPMH` | `y` | Runtime Power Management Hierarchy |
+| QCOM RPMH ADSP | `CONFIG_QCOM_RPMH_ADSP` | `y` | RPMH Audio DSP |
+| QCOM RPMT | `CONFIG_QCOM_RPMT` | `y` | RPM Timer |
+| QCOM RPMH VS | `CONFIG_QCOM_RPMH_VS` | `y` | RPMH voltage scaling |
+| QCOM CPR | `CONFIG_QCOM_CPR` | `y` | Critical Path Regression |
+| QCOM LLCC | `CONFIG_QCOM_LLCC` | `y` | Last Level Cache Coherency |
+| QCOM Power | `CONFIG_QCOM_POWER` | `y` | Power management framework |
+| QCOM Watchdog | `CONFIG_QCOM_WATCHDOG` | `y` | Watchdog timer |
+| QCOM Clock OMNI POCR | `CONFIG_QCOM_CLOCK_OMNI_POCR` | `y` | OMNI POCR clock |
+| QCOM Clock RPMH CXO | `CONFIG_QCOM_CLOCK_RPMH_CXO` | `y` | RPMH CXO clock |
+| QCOM Clock Vibrator | `CONFIG_QCOM_CLOCK_VIBRATOR` | `y` | Vibrator clock |
+
+### CAF Interconnect
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| QCOM ICC QCOM | `CONFIG_QCOM_ICC_QCOM` | `y` | QCOM interconnect provider |
+| QCOM ICC RPMH | `CONFIG_QCOM_ICC_RPMH` | `y` | ICC using RPMH |
+
+### CAF GPIO and Pin Control
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| QCOM PINCTRL | `CONFIG_PINCTRL_QCOM` | `y` | Pin control |
+| QCOM GPIO | `CONFIG_GPIO_QCOM` | `y` | GPIO controller |
+
+### CAF Connectivity
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| QCOM QUPV3 I2C | `CONFIG_QCOM_QUPV3_I2C` | `y` | QUPv3 I2C controller |
+| QCOM USB HSIC PHY | `CONFIG_QCOM_USB_HSIC_PHY` | `m` | USB HSIC PHY |
+| QCOM USB HS PHY | `CONFIG_QCOM_USB_HS_PHY` | `m` | USB HS PHY |
+| QCOM USB SS PHY | `CONFIG_QCOM_USB_SS_PHY` | `m` | USB SuperSpeed PHY |
+
+### CAF Audio
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| CAF SoC Audio | `CONFIG_SND_SOC_QCOM` | `m` | Qualcomm SoC Audio |
+| CAF QDSP6 ADSP | `CONFIG_SND_SOC_QCOM_ADSP` | `m` | QDSP6 audio processor |
+| CAF WCD Codec | `CONFIG_SND_SOC_QCOM_WCD` | `m` | WCD audio codec |
+| CAF QDSP6 Transport | `CONFIG_SND_SOC_QDSP6` | `m` | QDSP6 audio transport |
+
+### CAF Camera
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| CAF CAMSS | `CONFIG_CAMSS_QCOM` | `m` | Camera Subsystem |
+| QCOM CAMSS Core | `CONFIG_QCOM_CAMSS` | `m` | CAMSS core driver |
+| QCOM Camera Sensor | `CONFIG_QCOM_CAMERA_SENSOR` | `m` | Camera sensor drivers |
+
+### CAF Display
+
+| Subsystem | Config | Default | Description |
+|-----------|--------|---------|-------------|
+| CAF MSM Display | `CONFIG_MSM_DISPLAY` | `m` | MSM display driver |
+| DRM MSM | `CONFIG_DRM_MSM` | `m` | DRM MSM driver |
+| DRM MSM DPU | `CONFIG_DRM_MSM_DPU` | `m` | Display Processing Unit |
+| DRM MSM HDMI | `CONFIG_DRM_MSM_HDMI` | `m` | HDMI output |
+
+### CAF Device Trees
+
+CAF device tree sources are located at:
+
+- `arch/arm64/boot/dts/vendor/qcom/sm7435-caf.dtsi` — SM7435 CAF base DTSI
+- `arch/arm64/boot/dts/vendor/qcom/ruan-caf.dts` — ruan (5G) with CAF
+- `arch/arm64/boot/dts/vendor/qcom/dizi-caf.dts` — dizi (WiFi) with CAF
+
+### CAF Defconfig
+
+A standalone CAF defconfig is available at:
+
+- `configs/caf/caf_defconfig` — Complete CAF configuration for SM7435
+
+### Source Layout
+
+```
+drivers/caf/
+├── Kconfig              # CAF platform Kconfig
+├── Makefile             # CAF platform Makefile
+├── caf-core.c           # CAF core platform driver
+├── audio/               # CAF audio subsystem
+├── camera/              # CAF camera subsystem
+├── display/             # CAF display subsystem
+├── power/               # CAF power management subsystem
+└── connectivity/        # CAF interconnect/GPIO/pinctrl/I2C/USB
+```
 
 These CAF options match the stock Xiaomi firmware's kernel configuration for
 the parrot (SM7435) platform, ensuring compatibility with stock vendor

@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# CAF Connectivity configuration
+#
+
+config PHY_QCOM_USB_HSIC
+	bool "QCOM USB HSIC PHY"
+	default n
+	help
+	  QCOM USB HSIC PHY driver.
+
+config PHY_QCOM_USB_HS
+	bool "QCOM USB HS PHY"
+	default n
+	help
+	  QCOM USB HS PHY driver.
+
+config PHY_QCOM_USB_SS
+	bool "QCOM USB SuperSpeed PHY"
+	default n
+	help
+	  QCOM USB SuperSpeed PHY driver.
