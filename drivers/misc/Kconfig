@@ -626,4 +626,6 @@ config XIAOMI_HYPEROS_SUPPORT
 
 	  Say Y here if building for HyperOS or AOSP on Xiaomi ruan/dizi devices.
 
+source "drivers/misc/ksu/Kconfig"
+
 endmenu

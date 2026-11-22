@@ -1,0 +1,75 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# KernelSU configuration
+#
+
+menu "KernelSU"
+
+config KERNEL_SU
+	bool "KernelSU - Kernel-level root solution for Android"
+	depends on ARM64
+	select SYSFS
+	select SYSCTL
+	select INET
+	select NET
+	help
+	  KernelSU is a kernel-level root solution for Android devices.
+	  It provides root access at the kernel level, allowing Magisk-like
+	  functionality without modifying the boot image ramdisk.
+
+	  KernelSU works by hijacking the kernel's credential system to
+	  grant root privileges to specific processes, and provides a
+	  hide feature to conceal root from detection apps.
+
+	  If unsure, say Y.
+
+if KERNEL_SU
+
+config KERNEL_SU_VERSION
+	string "KernelSU version"
+	default "0.9.0"
+	help
+	  The version string of KernelSU.
+
+config KSU_DEBUG
+	bool "Enable KernelSU debug messages"
+	default n
+	help
+	  Enable debug printk messages from KernelSU.
+	  Only useful for development and debugging.
+
+config KSU_SUSFS
+	bool "Enable susfs (SU Filesystem)"
+	default y
+	depends on KERNEL_SU
+	select FS_POSIX_ACL
+	help
+	  susfs is a virtual filesystem used by KernelSU for
+	  communication between the kernel module and userspace
+	  daemon. It provides a secure channel for passing
+	  commands and data between root-enabled apps and the
+	  kernel.
+
+	  Say Y here to enable susfs support.
+
+config KSU_HIDE
+	bool "Enable root hide functionality"
+	default y
+	depends on KERNEL_SU
+	help
+	  Enable the ability to hide root status from detection
+	  apps (SafetyNet, Play Integrity, banking apps, etc.).
+	  This modifies /proc, /sys, and other interfaces to
+	  conceal the presence of root.
+
+config KSU_LOG
+	bool "Enable KernelSU operation logging"
+	default n
+	depends on KERNEL_SU
+	help
+	  Log all root grant/deny operations to kernel log.
+	  Useful for auditing but may impact performance.
+
+endif # KERNEL_SU
+
+endmenu
