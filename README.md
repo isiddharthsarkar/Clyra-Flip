@@ -143,9 +143,27 @@ Android-version builds add the corresponding version fragment
 (`ruan_android14.config`, `ruan_android15.config`, `ruan_android16.config`,
 `ruan_android17.config`, and the dizi equivalents) on top of the same base.
 
-## Building
+## Build Requirements
 
-Requires the Android kernel build toolchain (LLVM/clang + GNU ld or lld).
+Clyra-Flip must be built with **AOSP clang** (tested with `clang-r416183b`,
+the compiler of the GKI builds). Another compiler changes symbol CRCs and
+stock vendor modules will no longer load. Set `CLANG_DIR` or pass the clang
+directory as the first argument to `build.sh`.
+
+A `CONFIG_LOCALVERSION_AUTO=y` is required: `CONFIG_MODULE_SCMVERSION`
+depends on it and it adds a field to `struct module`, so turning it off
+breaks `module_layout` for every stock module. `CONFIG_HZ` stays 250 because
+stock vendor modules have it compiled in.
+
+```sh
+# With clang in a custom location
+CLANG_DIR=/path/to/clang-r416183b ./build.sh ruan android16
+
+# Or pass the clang directory as the first argument
+./build.sh /path/to/clang-r416183b ruan android16
+```
+
+## Building
 
 Default ruan build:
 

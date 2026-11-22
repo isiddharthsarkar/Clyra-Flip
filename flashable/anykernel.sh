@@ -3,8 +3,8 @@
 
 ### AnyKernel setup
 # global properties
-properties() {
-kernel.string=Clyra-Flip Kernel 6.6.144 for ruan/dizi
+properties() { '
+kernel.string=Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan/dizi
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -15,32 +15,40 @@ device.name2=dizi
 supported.versions=
 supported.patchlevels=
 supported.vendorpatchlevels=
-} # end properties
+'; } # end properties
+
 
 ### AnyKernel install
-# boot files attributes
-boot_attributes() {
-set_perm_recursive 0 0 755 644 $RAMDISK/*;
-set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
-} # end attributes
+# The active slot. AK3 looks only at getprop and /proc/cmdline, but ruan
+# and dizi boot with header v4: the bootloader passes androidboot.slot_suffix
+# in /proc/bootconfig, and getprop in the recovery updater only reads
+# build.prop files. So find it here and give AK3 the slot's block device.
+slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
+[ "$slot" ] || slot=$(sed -n 's/^androidboot\.slot_suffix = "\(.*\)"$/\1/p' /proc/bootconfig 2>/dev/null);
+[ "$slot" ] || slot=$(grep -o 'androidboot.slot_suffix=[^ ]*' /proc/cmdline | cut -d= -f2);
+case $slot in
+  _a|_b) ;;
+  *) abort "Unable to determine the active slot. Aborting...";;
+esac;
+for byname in /dev/block/bootdevice/by-name /dev/block/by-name; do
+  [ -e $byname/boot$slot ] && break;
+done;
+[ -e $byname/boot$slot ] || abort "boot$slot not found. Aborting...";
+ui_print "Installing to boot$slot";
 
 # boot shell variables
-BLOCK=auto;
-IS_SLOT_DEVICE=1;
+BLOCK=$byname/boot$slot;
+IS_SLOT_DEVICE=0;
 RAMDISK_COMPRESSION=auto;
 PATCH_VBMETA_FLAG=auto;
 
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
 
-# boot install
-dump_boot;
-
-# Replace kernel Image with Clyra-Flip build
-# AnyKernel3 automatically detects Image, Image.gz-dtb, zImage, etc. in zip root
-# and uses it as the new kernel when repacking boot.img
-
-write_boot;
+# GKI: only the kernel in boot is replaced. The vendor modules, dtb and
+# ramdisks of the ROM stay as they are.
+split_boot;
+flash_boot;
 ## end boot install
 
 
@@ -64,7 +72,7 @@ reset_ak;
 # Use split_boot to skip ramdisk unpack (vendor_boot v3 format on SM7435).
 split_boot;
 
-# Replace DTB if included in zip root (dtb.img or dtb/)
+# Replace DTB if included in zip root (dtb/ directory)
 # AnyKernel3 will use dtb from zip root if present
 
 write_boot;
