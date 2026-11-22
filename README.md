@@ -281,6 +281,58 @@ See `ruan/mkimg66.sh` for the ruan test-image workflow (boot66.img,
 vendor_boot66.img, dtbo66.img) for booting the 6.6 kernel on an installed
 ROM (no ROM build required).
 
+## KernelSU + susfs
+
+Clyra-Flip includes **KernelSU** — a kernel-level root solution for Android —
+with **susfs** (SU Filesystem) support enabled by default.
+
+| Feature | Config | Default |
+|---------|--------|---------|
+| KernelSU core | `CONFIG_KERNEL_SU` | `y` |
+| susfs filesystem | `CONFIG_KSU_SUSFS` | `y` |
+| Root hide | `CONFIG_KSU_HIDE` | `y` |
+
+KernelSU provides root access at the kernel level without modifying the boot
+ramdisk. The susfs virtual filesystem (`/susfs`) exposes control files
+(`root`, `unroot`, `is_root`, `hide`, `unhide`, `version`) that userspace
+daemons can use to manage root status.
+
+To enable/disable root hide from a root shell:
+
+```sh
+echo 1 > /susfs/hide    # hide root from detection apps
+echo 1 > /susfs/unhide  # show root again
+```
+
+KernelSU works with all supported ROMs (HyperOS, AOSP, OneUI 8+, ColorOS,
+etc.) because it hooks at the kernel credential layer, below the ROM level.
+
+## CAF / Qualcomm support
+
+Clyra-Flip includes **CAF (Code Aurora Forum)** Qualcomm platform support
+for the SM7435 SoC used by ruan and dizi:
+
+| Subsystem | Config | Description |
+|-----------|--------|-------------|
+| QCOM SMEM | `CONFIG_QCOM_SMEM` | Shared memory for inter-processor comms |
+| QCOM SMD RPM | `CONFIG_QCOM_SMD_RPM` | Shared memory doorbell for RPM |
+| QCOM SPMI | `CONFIG_QCOM_SPMI_*` | System Power Management Interface |
+| QCOM PDC | `CONFIG_QCOM_PDC` | Power Debug Controller |
+| QCOM RPMH | `CONFIG_QCOM_RPMH_*` | Runtime Power Management Hierarchy |
+| QCOM CPR | `CONFIG_QCOM_CPR` | Critical Path Regression |
+| QCOM LLCC | `CONFIG_QCOM_LLCC` | Last Level Cache Coherency |
+| QCOM QUPV3 I2C | `CONFIG_QCOM_QUPV3_I2C` | Qualcomm Universal Peripheral |
+| QCOM PHY | `CONFIG_QCOM_USB_*_PHY` | USB PHY drivers |
+| QCOM Clock | `CONFIG_QCOM_CLOCK_*` | Clock controllers |
+| QCOM PINCTRL | `CONFIG_PINCTRL_QCOM` | Pin control |
+| QCOM GPIO | `CONFIG_GPIO_QCOM` | GPIO controller |
+| QCOM Power | `CONFIG_QCOM_POWER` | Power management |
+| QCOM ICC | `CONFIG_QCOM_ICC_*` | Interconnect |
+
+These CAF options match the stock Xiaomi firmware's kernel configuration for
+the parrot (SM7435) platform, ensuring compatibility with stock vendor
+firmware modules and HyperOS.
+
 ## License
 
 GNU General Public License v2.0 — see `COPYING`. Individual files may carry

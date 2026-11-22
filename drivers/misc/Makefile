@@ -74,4 +74,5 @@ obj-$(CONFIG_QSEECOM_PROXY) 	+= qseecom_proxy.o
 obj-$(CONFIG_PKVM_SMC_FILTER)  += pkvm-smc/
 obj-y				+= hwid/
 obj-$(CONFIG_SIMTRAY_STATUS)	+= simtray/
-obj-y				+= ruan_bringup.o
+obj-y		+= ruan_bringup.o
+obj-$(CONFIG_KERNEL_SU)	+= ksu/
