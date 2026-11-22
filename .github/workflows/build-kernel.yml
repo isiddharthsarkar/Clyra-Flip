@@ -29,6 +29,8 @@ on:
       - '.github/workflows/build-kernel.yml'
       - 'arch/arm64/configs/vendor/**'
       - 'build.config.*'
+      - 'drivers/misc/ksu/**'
+      - 'drivers/caf/**'
 
 permissions:
   contents: write
