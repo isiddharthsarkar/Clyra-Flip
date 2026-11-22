@@ -81,61 +81,17 @@ jobs:
           aarch64-linux-gnu-gcc --version | head -1 || true
           arm-linux-gnueabi-gcc --version | head -1 || true
 
-      - name: Download AOSP clang-r416183b
+      - name: Setup system clang
         run: |
           set -euo pipefail
-          mkdir -p ~/clyra-tools
-          cd ~/clyra-tools
-          echo "Attempting to download clang-r416183b..."
-          if curl -L -f -s -o clang-r416183b.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/clang-r416183b.tar.gz"; then
-            echo "Download succeeded via curl"
-            tar -xzf clang-r416183b.tar.gz
-          elif wget -q -O clang-r416183b.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/clang-r416183b.tar.gz"; then
-            echo "Download succeeded via wget"
-            tar -xzf clang-r416183b.tar.gz
-          else
-            echo "WARNING: Could not download clang-r416183b from Android CI"
-            echo "Trying alternative: Android NDK..."
-            curl -L -f -s -o android-ndk.zip \
-              "https://dl.google.com/android/repository/android-ndk-r26b-linux.zip"
-            unzip -q android-ndk.zip
-            # Search for clang binary anywhere in NDK (look for aarch64-linux-android clang compiler)
-            CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64/bin -name "aarch64-linux-android*-clang" -type f -executable 2>/dev/null | head -1)
-            if [ -z "$CLANG_BIN" ]; then
-                # Fallback: any clang* executable in NDK bin, excluding git-clang-format and clang++
-                CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64/bin -name "*clang*" -type f -executable 2>/dev/null | grep -v "clang++" | grep -v "git-clang-format" | head -1)
-            fi
-            if [ -z "$CLANG_BIN" ]; then
-                # Last resort: any clang* executable in entire NDK
-                CLANG_BIN=$(find ~/clyra-tools/android-ndk-r26b -name "*clang*" -type f -executable 2>/dev/null | grep -v "clang++" | grep -v "git-clang-format" | head -1)
-            fi
-            if [ -n "$CLANG_BIN" ]; then
-                CLANG_DIR=$(dirname "$CLANG_BIN")
-                echo "Found clang at: $CLANG_BIN"
-                echo "CLANG_DIR=$CLANG_DIR" >> $GITHUB_ENV
-                echo "CLANG_DIR_FALLBACK=$CLANG_DIR" >> $GITHUB_ENV
-                echo "Using NDK clang: $CLANG_BIN"
-                $CLANG_BIN --version
-            else
-                echo "ERROR: No clang found in NDK!"
-                find ~/clyra-tools/android-ndk-r26b -name "*clang*" 2>/dev/null | head -20 || true
-                exit 1
-            fi
-          fi
-          if [ -x ~/clyra-tools/clang-r416183b/bin/clang ]; then
-            echo "CLANG_DIR=~/clyra-tools/clang-r416183b" >> $GITHUB_ENV
-            ~/clyra-tools/clang-r416183b/bin/clang --version
-          elif [ -n "${CLANG_DIR_FALLBACK:-}" ]; then
-            echo "Using NDK clang fallback: $CLANG_DIR_FALLBACK"
-            # Verify the clang compiler binary exists
-            ls -la "$CLANG_DIR_FALLBACK"/aarch64-linux-android*-clang 2>/dev/null || ls -la "$CLANG_DIR_FALLBACK"/*clang* 2>/dev/null || true
-          else
-            echo "ERROR: No clang found!"
-            ls -la ~/clyra-tools/ || true
-            exit 1
-          fi
+          # Use system clang from apt (already installed in dependencies)
+          # Create a directory structure expected by build.sh: CLANG_DIR/bin/clang
+          mkdir -p ~/clyra-tools/system-clang/bin
+          ln -sf /usr/bin/clang ~/clyra-tools/system-clang/bin/clang
+          ln -sf /usr/bin/clang++ ~/clyra-tools/system-clang/bin/clang++
+          echo "CLANG_DIR=~/clyra-tools/system-clang" >> $GITHUB_ENV
+          echo "Using system clang:"
+          ~/clyra-tools/system-clang/bin/clang --version
 
       - name: Determine build matrix
         id: matrix
