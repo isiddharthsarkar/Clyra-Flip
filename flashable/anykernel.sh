@@ -1,10 +1,10 @@
 ### AnyKernel3 Ramdisk Mod Script
-## Clyra-Flip Kernel for Xiaomi ruan/dizi (SM7435)
+## Clyra-Flip Kernel 6.6.144-Clyra-Flip — Universal for Xiaomi ruan & dizi (SM7435)
 
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan/dizi
+kernel.string=Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan/dizi (universal)
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -19,16 +19,50 @@ supported.vendorpatchlevels=
 
 
 ### AnyKernel install
-# The active slot. AK3 looks only at getprop and /proc/cmdline, but ruan
-# and dizi boot with header v4: the bootloader passes androidboot.slot_suffix
-# in /proc/bootconfig, and getprop in the recovery updater only reads
-# build.prop files. So find it here and give AK3 the slot's block device.
+
+# --- Detect device ---------------------------------------------------------
+# Try several sources so the zip works in TWRP, OrangeFox, and stock recovery.
+DEVICE=$(getprop ro.product.device 2>/dev/null)
+[ -z "$DEVICE" ] && DEVICE=$(getprop ro.build.product 2>/dev/null)
+[ -z "$DEVICE" ] && DEVICE=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+[ -z "$DEVICE" ] && DEVICE=$(cat /proc/device-tree/compatible 2>/dev/null | tr '\0' ' ')
+
+case "$DEVICE" in
+  *ruan*)  DEVICE="ruan"  ;;
+  *dizi*)  DEVICE="dizi"  ;;
+  *)       abort "Unsupported device: $DEVICE. Aborting..." ;;
+esac
+
+ui_print " "
+ui_print "Device detected: $DEVICE"
+ui_print " "
+
+# --- Select the correct kernel Image for this device -----------------------
+if [ -f "Image.${DEVICE}" ]; then
+  cp "Image.${DEVICE}" "Image"
+  ui_print "Using kernel: Image.${DEVICE}"
+else
+  abort "Kernel Image for $DEVICE not found in zip. Aborting..."
+fi
+
+# --- Verify DTB for this device -------------------------------------------
+if [ -f "dtb/${DEVICE}.dtb" ]; then
+  ui_print "Using DTB: dtb/${DEVICE}.dtb"
+else
+  abort "DTB for $DEVICE not found in zip. Aborting..."
+fi
+
+ui_print " "
+
+# --- Determine active boot slot ------------------------------------------
+# ruan/dizi boot with header v4: the bootloader passes androidboot.slot_suffix
+# in /proc/bootconfig. getprop in recovery only reads build.prop files.
 slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
 [ "$slot" ] || slot=$(sed -n 's/^androidboot\.slot_suffix = "\(.*\)"$/\1/p' /proc/bootconfig 2>/dev/null);
 [ "$slot" ] || slot=$(grep -o 'androidboot.slot_suffix=[^ ]*' /proc/cmdline | cut -d= -f2);
 case $slot in
-  _a|_b) ;;
-  *) abort "Unable to determine the active slot. Aborting...";;
+  _a|_b) ;;\
+  *)     abort "Unable to determine the active slot. Aborting...";;
 esac;
 for byname in /dev/block/bootdevice/by-name /dev/block/by-name; do
   [ -e $byname/boot$slot ] && break;
@@ -77,3 +111,7 @@ split_boot;
 
 write_boot;
 ## end vendor_boot install
+
+ui_print " "
+ui_print "Clyra-Flip Kernel installed for $DEVICE!"
+ui_print "Reboot to system."
