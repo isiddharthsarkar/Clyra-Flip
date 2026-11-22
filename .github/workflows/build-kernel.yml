@@ -85,17 +85,28 @@ jobs:
           aarch64-linux-gnu-gcc --version | head -1 || true
           arm-linux-gnueabi-gcc --version | head -1 || true
 
-      - name: Setup system clang
+      - name: Setup AOSP clang
         run: |
           set -euo pipefail
-          # Use system clang from apt (already installed in dependencies)
-          # Create a directory structure expected by build.sh: CLANG_DIR/bin/clang
-          mkdir -p "$HOME/clyra-tools/system-clang/bin"
-          ln -sf /usr/bin/clang "$HOME/clyra-tools/system-clang/bin/clang"
-          ln -sf /usr/bin/clang++ "$HOME/clyra-tools/system-clang/bin/clang++"
-          echo "CLANG_DIR=$HOME/clyra-tools/system-clang" >> $GITHUB_ENV
-          echo "Using system clang:"
-          "$HOME/clyra-tools/system-clang/bin/clang" --version
+          # Install AOSP-compatible clang (clang-14, close to clang-r416183b used by GKI builds)
+          # Ubuntu system clang 21.x is too new and produces different symbol CRCs,
+          # breaking KMI compatibility with stock vendor modules.
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 14
+          # Create directory structure expected by build.sh: CLANG_DIR/bin/clang
+          mkdir -p "$HOME/clyra-tools/aosp-clang/bin"
+          ln -sf /usr/bin/clang-14 "$HOME/clyra-tools/aosp-clang/bin/clang"
+          ln -sf /usr/bin/clang++-14 "$HOME/clyra-tools/aosp-clang/bin/clang++"
+          ln -sf /usr/bin/llvm-ar-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-ar" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-nm-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-nm" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-objcopy-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-objcopy" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-strip-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-strip" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-readelf-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-readelf" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-objdump-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-objdump" 2>/dev/null || true
+          echo "CLANG_DIR=$HOME/clyra-tools/aosp-clang" >> $GITHUB_ENV
+          echo "Using AOSP-compatible clang:"
+          "$HOME/clyra-tools/aosp-clang/bin/clang" --version
 
       - name: Determine build matrix
         id: matrix
