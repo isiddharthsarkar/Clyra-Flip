@@ -9,8 +9,11 @@
 # creates a flashable zip:
 #   clyra-flip-kernel-<device>-<release>.zip
 #
-# The zip uses AnyKernel3 to patch the device's boot image at flash time.
-# No mkbootimg is required on the build machine.
+# The zip uses AnyKernel3 (split_boot + flash_boot) to patch the device's
+# boot image at flash time, preserving the original ramdisk and supporting
+# Magisk retention. No mkbootimg is required on the build machine.
+#
+# Build requirement: the kernel must be built first with ./build.sh
 #
 # Example:
 #   ./package.sh out-ruan66
