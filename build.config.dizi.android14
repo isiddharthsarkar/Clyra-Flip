@@ -1,0 +1,24 @@
+# Build config for Xiaomi dizi (SM7435 WiFi) — Android 14 / GKI 2.0 / kernel 6.6
+# Produces a kernel + vendor modules compatible with Android 14 HyperOS and AOSP.
+
+export COMMON_ANDROID_VERSION=14
+export GKI_VERSION=2.0
+export DEVICE=dizi
+export MSM_ARCH=parrot
+
+# Configs: base GKI -> platform (parrot) -> device (dizi) -> Android version fragment -> debugfs
+# Paths are relative to arch/arm64/configs/ as required by kbuild defconfig handling.
+export CONFIG_FILES="\
+    gki_defconfig \
+    vendor/parrot_GKI.config \
+    vendor/dizi_GKI.config \
+    vendor/dizi_android14.config \
+    vendor/debugfs.config"
+
+# Build both first-stage and vendor_dlkm module sets so HyperOS and AOSP
+# vendor ramdisks can load them.
+export BUILD_VENDOR_DLKM=1
+export DT_OVERLAY_SUPPORT=1
+
+# Targets
+export MAKE_GOALS="Image modules dtbs"
