@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# CAF Camera configuration
+#
+
+config QCOM_CAMSS
+	bool "QCOM Camera Subsystem core"
+	default n
+	help
+	  QCOM Camera Subsystem core driver.

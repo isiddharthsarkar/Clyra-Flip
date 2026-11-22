@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# CAF Audio configuration
+#
+
+config QCOM_QDSP6APSS
+	bool "QDSP6 APSS (Audio Processor Subsystem)"
+	default n
+	help
+	  QDSP6 Audio Processor Subsystem support.
+
+config MFD_QCOM_SPMI_PMIC
+	bool "QCOM SPMI PMIC MFD"
+	default n
+	help
+	  Multi-function device driver for QCOM SPMI PMIC.

@@ -1,0 +1,445 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Code Aurora Forum (CAF) / Qualcomm platform support
+#
+
+menu "Code Aurora Forum (CAF) Qualcomm platform support"
+
+config ARCH_QCOM_CAF
+	bool "CAF Qualcomm platform support (SM7435 / parrot)"
+	depends on ARM64 && OF
+	select QCOM_SMEM
+	select QCOM_SMEM_STATE
+	select QCOM_SMEM_SDP
+	select QCOM_SMD_RPM
+	select QCOM_RMTFS_MEM
+	select QCOM_PDC
+	select QCOM_SPMI_PMIC
+	select QCOM_SPMI_ADSP
+	select QCOM_SPMI_PMIC_ARB
+	select QCOM_SPMI_WRAPPER
+	select QCOM_GENI_SE
+	select QCOM_GENI_SMEM_IPC
+	select QCOM_RPMT_ENA
+	select QCOM_RPMH
+	select QCOM_RPMH_ADSP
+	select QCOM_RPMT
+	select QCOM_CPR
+	select QCOM_LLCC
+	select QCOM_QUPV3_I2C
+	select QCOM_USB_HSIC_PHY
+	select QCOM_USB_HS_PHY
+	select QCOM_USB_SS_PHY
+	select QCOM_CLOCK_OMNI_POCR
+	select QCOM_CLOCK_RPMH_CXO
+	select QCOM_CLOCK_VIBRATOR
+	select PINCTRL_QCOM
+	select GPIO_QCOM
+	select QCOM_POWER
+	select QCOM_WATCHDOG
+	select QCOM_RPMH_VS
+	select QCOM_ICC_QCOM
+	select QCOM_ICC_RPMH
+	help
+	  CAF (Code Aurora Forum) Qualcomm platform support for SM7435
+	  (parrot) SoC used by Xiaomi ruan and dizi devices.
+
+	  This enables the core Qualcomm platform infrastructure required
+	  for CAF-based device trees, power management, interconnect,
+	  clock control, GPIO, pin control, and shared memory.
+
+	  Say Y if building for Xiaomi ruan/dizi devices with stock
+	  HyperOS or CAF-based firmware.
+
+if ARCH_QCOM_CAF
+
+# ---------------------------------------------------------------
+# CAF Audio subsystem
+# ---------------------------------------------------------------
+
+menu "CAF Audio"
+
+config SND_SOC_QCOM
+	bool "CAF Qualcomm SoC Audio support"
+	depends on ARCH_QCOM_CAF && SND_SOC
+	select QCOM_QDSP6APSS
+	select QCOM_SMD_RPM
+	select QCOM_RPMT
+	select MFD_QCOM_SPMI_PMIC
+	help
+	  CAF audio support for Qualcomm SoCs including ADSP, WCD,
+	  and audio codec drivers for SM7435.
+
+config SND_SOC_QCOM_ADSP
+	bool "CAF QDSP6 ADSP audio processor"
+	depends on SND_SOC_QCOM
+	default y
+	help
+	  Qualcomm QDSP6 audio digital signal processor support.
+
+config SND_SOC_QCOM_WCD
+	bool "CAF WCD audio codec"
+	depends on SND_SOC_QCOM
+	default y
+	help
+	  Qualcomm WCD (Wideband Codec) audio codec support.
+
+config SND_SOC_QDSP6
+	bool "CAF QDSP6 audio transport"
+	depends on SND_SOC_QCOM
+	default y
+	help
+	  QDSP6 audio transport layer for CAF audio.
+
+endmenu # CAF Audio
+
+# ---------------------------------------------------------------
+# CAF Camera subsystem
+# ---------------------------------------------------------------
+
+menu "CAF Camera"
+
+config CAMSS_QCOM
+	bool "CAF Qualcomm Camera Subsystem (CAMSS)"
+	depends on ARCH_QCOM_CAF && VIDEO_DEV && MEDIA_CAMERA_SUPPORT
+	select QCOM_CAMSS
+	help
+	  CAF Camera Subsystem support for Qualcomm ISP and camera
+	  modules on SM7435.
+
+config QCOM_CAMSS
+	bool "QCOM Camera Subsystem core"
+	depends on CAMSS_QCOM
+	default y
+	help
+	  Core CAF camera subsystem driver.
+
+config QCOM_CAMERA_SENSOR
+	bool "QCOM camera sensor drivers"
+	depends on CAMSS_QCOM
+	default y
+	help
+	  CAF camera sensor driver support for common Xiaomi sensors.
+
+endmenu # CAF Camera
+
+# ---------------------------------------------------------------
+# CAF Display subsystem
+# ---------------------------------------------------------------
+
+menu "CAF Display"
+
+config MSM_DISPLAY
+	bool "CAF Qualcomm MSM Display support"
+	depends on ARCH_QCOM_CAF && DRM
+	select DRM_MSM
+	select DRM_MSM_DPU
+	select DRM_MSM_HDMI
+	help
+	  CAF display support for Qualcomm MSM display pipeline
+	  including DPU (Display Processing Unit) and HDMI.
+
+config DRM_MSM
+	bool "DRM MSM display driver"
+	depends on MSM_DISPLAY
+	default y
+	help
+	  Direct Rendering Manager driver for Qualcomm MSM displays.
+
+config DRM_MSM_DPU
+	bool "DRM MSM DPU (Display Processing Unit)"
+	depends on DRM_MSM
+	default y
+	help
+	  DPU driver for Qualcomm display processing.
+
+config DRM_MSM_HDMI
+	bool "DRM MSM HDMI"
+	depends on DRM_MSM
+	default n
+	help
+	  HDMI output support for Qualcomm displays.
+
+endmenu # CAF Display
+
+# ---------------------------------------------------------------
+# CAF Power management
+# ---------------------------------------------------------------
+
+menu "CAF Power Management"
+
+config QCOM_SPMI_PMIC
+	bool "QCOM SPMI PMIC driver"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  System Power Management Interface Power Management
+	  Integrated Circuit driver for Qualcomm SoCs.
+
+config QCOM_SPMI_ADSP
+	bool "QCOM SPMI ADSP driver"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  SPMI driver for Audio Digital Signal Processor communication.
+
+config QCOM_SPMI_PMIC_ARB
+	bool "QCOM SPMI PMIC arbiter"
+	depends on QCOM_SPMI_PMIC
+	default y
+	help
+	  PMIC arbiter for SPMI bus arbitration.
+
+config QCOM_SPMI_WRAPPER
+	bool "QCOM SPMI wrapper"
+	depends on QCOM_SPMI_PMIC
+	default y
+	help
+	  SPMI wrapper driver.
+
+config QCOM_PDC
+	bool "QCOM Power Debug Controller"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  Power Debug Controller for Qualcomm power domain debugging.
+
+config QCOM_RPMH
+	bool "QCOM Runtime Power Management Hierarchy"
+	depends on ARCH_QCOM_CAF
+	default y
+	select QCOM_RPMT
+	help
+	  RPMH driver for Qualcomm runtime power management.
+
+config QCOM_RPMH_ADSP
+	bool "QCOM RPMH ADSP"
+	depends on QCOM_RPMH
+	default y
+	help
+	  RPMH driver for ADSP power management.
+
+config QCOM_RPMT
+	bool "QCOM RPM Timer"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  RPM Timer driver for Qualcomm SoCs.
+
+config QCOM_RPMH_VS
+	bool "QCOM RPMH voltage scaling"
+	depends on QCOM_RPMH
+	default y
+	help
+	  RPMH voltage/frequency scaling support.
+
+config QCOM_CPR
+	bool "QCOM Critical Path Regression"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  CPR driver for critical path regression monitoring.
+
+config QCOM_LLCC
+	bool "QCOM Last Level Cache Coherency"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  LLCC driver for last level cache coherency management.
+
+config QCOM_POWER
+	bool "QCOM Power management"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  QCOM power management framework.
+
+config QCOM_WATCHDOG
+	bool "QCOM Watchdog timer"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  Qualcomm watchdog timer driver.
+
+endmenu # CAF Power Management
+
+# ---------------------------------------------------------------
+# CAF Interconnect
+# ---------------------------------------------------------------
+
+menu "CAF Interconnect"
+
+config QCOM_ICC_QCOM
+	bool "QCOM Interconnect (ICC) provider"
+	depends on ARCH_QCOM_CAF && INTERCONNECT
+	default y
+	help
+	  QCOM interconnect provider driver.
+
+config QCOM_ICC_RPMH
+	bool "QCOM ICC RPMH"
+	depends on QCOM_ICC_QCOM && QCOM_RPMH
+	default y
+	help
+	  ICC driver using RPMH for bandwidth requests.
+
+endmenu # CAF Interconnect
+
+# ---------------------------------------------------------------
+# CAF Clock control
+# ---------------------------------------------------------------
+
+menu "CAF Clock Control"
+
+config QCOM_CLOCK_OMNI_POCR
+	bool "QCOM OMNI POCR clock"
+	depends on ARCH_QCOM_CAF && CLK_QCOM
+	default y
+	help
+	  OMNI POCR (Power On Clock Reset) clock controller.
+
+config QCOM_CLOCK_RPMH_CXO
+	bool "QCOM RPMH CXO clock"
+	depends on ARCH_QCOM_CAF && CLK_QCOM
+	default y
+	help
+	  RPMH CXO (crystal oscillator) clock controller.
+
+config QCOM_CLOCK_VIBRATOR
+	bool "QCOM Vibrator clock"
+	depends on ARCH_QCOM_CAF && CLK_QCOM
+	default n
+	help
+	  Vibrator clock controller.
+
+endmenu # CAF Clock Control
+
+# ---------------------------------------------------------------
+# CAF GPIO and pin control
+# ---------------------------------------------------------------
+
+menu "CAF GPIO and Pin Control"
+
+config PINCTRL_QCOM
+	bool "QCOM Pin control"
+	depends on ARCH_QCOM_CAF && PINCTRL
+	default y
+	help
+	  QCOM pin control driver for SM7435.
+
+config GPIO_QCOM
+	bool "QCOM GPIO controller"
+	depends on ARCH_QCOM_CAF && GPIOLIB
+	default y
+	help
+	  QCOM GPIO controller driver.
+
+endmenu # CAF GPIO and Pin Control
+
+# ---------------------------------------------------------------
+# CAF Connectivity
+# ---------------------------------------------------------------
+
+menu "CAF Connectivity"
+
+config QCOM_QUPV3_I2C
+	bool "QCOM QUPV3 I2C controller"
+	depends on ARCH_QCOM_CAF && I2C
+	default y
+	help
+	  QCOM QUPv3 (Qualcomm Universal Peripheral) I2C controller.
+
+config QCOM_USB_HSIC_PHY
+	bool "QCOM USB HSIC PHY"
+	depends on ARCH_QCOM_CAF && PHY_QCOM_USB_HSIC
+	default n
+	help
+	  QCOM USB HSIC PHY driver.
+
+config QCOM_USB_HS_PHY
+	bool "QCOM USB HS PHY"
+	depends on ARCH_QCOM_CAF && PHY_QCOM_USB_HS
+	default n
+	help
+	  QCOM USB HS PHY driver.
+
+config QCOM_USB_SS_PHY
+	bool "QCOM USB SS PHY"
+	depends on ARCH_QCOM_CAF && PHY_QCOM_USB_SS
+	default n
+	help
+	  QCOM USB SuperSpeed PHY driver.
+
+endmenu # CAF Connectivity
+
+# ---------------------------------------------------------------
+# CAF Shared memory and IPC
+# ---------------------------------------------------------------
+
+menu "CAF Shared Memory and IPC"
+
+config QCOM_SMEM
+	bool "QCOM Shared Memory (SMEM)"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  QCOM Shared Memory driver for inter-processor communication.
+
+config QCOM_SMEM_STATE
+	bool "QCOM SMEM state"
+	depends on QCOM_SMEM
+	default y
+	help
+	  SMEM state tracking.
+
+config QCOM_SMEM_SDP
+	bool "QCOM SMEM SDP"
+	depends on QCOM_SMEM
+	default y
+	help
+	  SMEM Secure Data Path.
+
+config QCOM_SMD_RPM
+	bool "QCOM SMD RPM doorbell"
+	depends on QCOM_SMEM
+	default y
+	help
+	  Shared Memory Doorbell for RPM (Resource Power Manager).
+
+config QCOM_RMTFS_MEM
+	bool "QCOM Remote Filesystem memory"
+	depends on QCOM_SMEM
+	default y
+	help
+	  Remote filesystem memory driver.
+
+config QCOM_GENI_SE
+	bool "QCOM GENI SE (Security Engine)"
+	depends on ARCH_QCOM_CAF
+	default y
+	help
+	  GENI Security Engine driver.
+
+config QCOM_GENI_SMEM_IPC
+	bool "QCOM GENI SMEM IPC"
+	depends on QCOM_SMEM && QCOM_GENI_SE
+	default y
+	help
+	  GENI SMEM inter-processor communication.
+
+endmenu # CAF Shared Memory and IPC
+
+# ---------------------------------------------------------------
+# CAF Debug
+# ---------------------------------------------------------------
+
+config CAF_DEBUG
+	bool "CAF debug messages"
+	depends on ARCH_QCOM_CAF
+	default n
+	help
+	  Enable debug printk messages from CAF drivers.
+
+endif # ARCH_QCOM_CAF
+
+endmenu # CAF Qualcomm platform support

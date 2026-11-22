@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# CAF Display configuration
+#
+
+config DRM_MSM
+	bool "DRM MSM display driver"
+	default n
+	help
+	  Direct Rendering Manager driver for Qualcomm MSM displays.
+
+config DRM_MSM_DPU
+	bool "DRM MSM DPU"
+	default n
+	help
+	  DPU driver for Qualcomm display processing.
+
+config DRM_MSM_HDMI
+	bool "DRM MSM HDMI"
+	default n
+	help
+	  HDMI output support for Qualcomm displays.
