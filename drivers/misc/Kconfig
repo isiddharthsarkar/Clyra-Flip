@@ -612,17 +612,18 @@ config XIAOMI_HYPEROS_SUPPORT
 	default y
 	help
 	  Enable Xiaomi device-specific support required by both HyperOS
-	  and stock AOSP builds on ruan (SM7435) devices.
+	  and stock AOSP builds on ruan (SM7435 5G) and dizi (SM7435 WiFi)
+	  devices.
 
-	  This option documents the ruan device drivers that are required
-	  by both HyperOS and stock AOSP builds. The individual drivers are
-	  enabled in arch/arm64/configs/vendor/ruan_GKI.config:
+	  This option documents the device drivers that are required by both
+	  HyperOS and stock AOSP builds. The individual drivers are enabled
+	  in arch/arm64/configs/vendor/ruan_GKI.config and dizi_GKI.config:
 
-	  - Ruan battery charger properties (qti_battery_charger_ruan)
+	  - Battery charger properties (qti_battery_charger_ruan)
 	  - Xiaomi hall-sensor (lid) detection
 	  - Xiaomi thermal interface
 	  - Ruan bring-up aid (panic_after) for debug builds
 
-	  Say Y here if building for HyperOS or AOSP on Xiaomi ruan devices.
+	  Say Y here if building for HyperOS or AOSP on Xiaomi ruan/dizi devices.
 
 endmenu

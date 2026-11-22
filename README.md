@@ -16,6 +16,28 @@ display, touch, pen, audio and camera drivers. ruan adds the modem, GNSS and
 telephony layer; dizi is WiFi-only. At the kernel level the two configs are
 nearly identical — dizi simply omits modem-only options.
 
+### Quick reference
+
+| Task | Command |
+|------|---------|
+| Default ruan build (stock ROM) | `./build.sh` |
+| Default dizi build (stock ROM) | `./build.sh dizi` |
+| Android 14 / HyperOS 2, ruan | `./build.sh ruan android14` |
+| Android 14 / HyperOS 2, dizi | `./build.sh dizi android14` |
+| Android 15 / HyperOS 2, ruan | `./build.sh ruan android15` |
+| Android 15 / HyperOS 2, dizi | `./build.sh dizi android15` |
+| Android 16 / HyperOS 3, ruan | `./build.sh ruan android16` |
+| Android 16 / HyperOS 3, dizi | `./build.sh dizi android16` |
+| Android 17 / AOSP, ruan | `./build.sh ruan android17` |
+| Android 17 / AOSP, dizi | `./build.sh dizi android17` |
+
+### Firmware requirements
+
+The tablet should run **HyperOS OS3.0.303.0 or newer** (Android 16 firmware)
+before flashing this kernel. The ROM reuses the firmware partitions (modem,
+bootloader, TrustZone) already on the tablet. Never relock the bootloader
+while this kernel is installed.
+
 ## Supported Android versions
 
 Clyra-Flip is built on Linux stable **6.6** and targets the latest Android
@@ -165,6 +187,12 @@ Android 17 (AOSP / future ROMs), ruan:
 
 ```sh
 ./build.sh ruan android17
+```
+
+Android 17 (AOSP / future ROMs), dizi:
+
+```sh
+./build.sh dizi android17
 ```
 
 You can pass extra make targets after the device and version, e.g.
