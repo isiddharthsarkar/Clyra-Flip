@@ -42,12 +42,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Show environment info
-        run: |
-          echo "Runner: $(uname -a)"
-          echo "GitHub event: ${{ github.event_name }}"
-          echo "GitHub ref: ${{ github.ref }}"
-
       - name: Install build dependencies
         run: |
           set -euo pipefail
@@ -91,8 +85,6 @@ jobs:
           set -euo pipefail
           mkdir -p ~/clyra-tools
           cd ~/clyra-tools
-
-          # Try downloading clang-r416183b from Android CI archive
           echo "Attempting to download clang-r416183b..."
           if curl -L -f -s -o clang-r416183b.tar.gz \
             "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/clang-r416183b.tar.gz"; then
@@ -105,17 +97,13 @@ jobs:
           else
             echo "WARNING: Could not download clang-r416183b from Android CI"
             echo "Trying alternative: Android NDK..."
-            # Fallback: download Android NDK which includes clang
             curl -L -f -s -o android-ndk.zip \
               "https://dl.google.com/android/repository/android-ndk-r26b-linux.zip"
             unzip -q android-ndk.zip
-            # Find clang in NDK
             export CLANG_DIR=$(find ~/clyra-tools/android-ndk-r26b -name "clang" -type f | head -1 | xargs dirname | xargs dirname)
             echo "NDK clang dir: $CLANG_DIR"
             echo "CLANG_DIR_FALLBACK=$CLANG_DIR" >> $GITHUB_ENV
           fi
-
-          # Verify clang exists
           if [ -x ~/clyra-tools/clang-r416183b/bin/clang ]; then
             echo "CLANG_DIR=~/clyra-tools/clang-r416183b" >> $GITHUB_ENV
             ~/clyra-tools/clang-r416183b/bin/clang --version
@@ -134,19 +122,16 @@ jobs:
           set -euo pipefail
           DEVICE="${{ github.event.inputs.device }}"
           ANDROID="${{ github.event.inputs.android }}"
-
           if [ "$DEVICE" = "all" ]; then
             DEVICES="ruan dizi"
           else
             DEVICES="$DEVICE"
           fi
-
           if [ "$ANDROID" = "all" ]; then
             ANDROIDS="android14 android15 android16 android17"
           else
             ANDROIDS="$ANDROID"
           fi
-
           echo "devices=$DEVICES" >> $GITHUB_OUTPUT
           echo "androids=$ANDROIDS" >> $GITHUB_OUTPUT
 
@@ -156,15 +141,12 @@ jobs:
           CLANG_DIR="${CLANG_DIR:-~/clyra-tools/clang-r416183b}"
           echo "Using CLANG_DIR: $CLANG_DIR"
           ls -la "$CLANG_DIR/bin/clang" || echo "WARNING: clang not found at expected path"
-
           for dev in ${{ steps.matrix.outputs.devices }}; do
             for ver in ${{ steps.matrix.outputs.androids }}; do
               echo "========================================"
               echo "Building $dev $ver"
               echo "========================================"
               ./build.sh "$CLANG_DIR" "$dev" "$ver"
-
-              # Verify build output
               if [ ! -f "out-${dev}66.${ver}/arch/arm64/boot/Image" ]; then
                 echo "ERROR: Build failed for $dev $ver - Image not found"
                 ls -la "out-${dev}66.${ver}/arch/arm64/boot/" 2>/dev/null || echo "No boot dir"
@@ -198,6 +180,25 @@ jobs:
           path: clyra-flip-kernel-universal-*.zip
           retention-days: 7
 
+      - name: Write release notes file
+        if: (github.event.inputs.upload_release == 'true' || github.event_name == 'push') && success()
+        run: |
+          cat > /tmp/release-notes.md << 'NOTES_EOF'
+Clyra-Flip Kernel v1.0.0
+
+Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).
+
+Built with GitHub Actions
+Kernel: Linux 6.6.144-Clyra-Flip
+Devices: ruan, dizi
+Android: 14, 15, 16, 17
+Compiler: AOSP clang-r416183b (or NDK fallback)
+Features: KernelSU, susfs, CAF/Qualcomm platform support
+
+Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version.
+NOTES_EOF
+          cat /tmp/release-notes.md
+
       - name: Upload to GitHub Release v1.0.0
         if: (github.event.inputs.upload_release == 'true' || github.event_name == 'push') && success()
         env:
@@ -210,11 +211,7 @@ jobs:
             exit 1
           fi
           echo "Uploading $ZIP to release v1.0.0..."
-
-          # Check if gh is available
           which gh || { echo "ERROR: gh CLI not found"; exit 1; }
-
-          # Check if release v1.0.0 exists
           if gh release view v1.0.0 --json tagName -q '.tagName' 2>/dev/null | grep -q "v1.0.0"; then
             echo "Release v1.0.0 exists, uploading asset..."
             gh release upload v1.0.0 "$ZIP" --clobber
@@ -222,19 +219,9 @@ jobs:
             echo "Release v1.0.0 does not exist, creating it..."
             gh release create v1.0.0 \
               --title "Clyra-Flip Kernel v1.0.0" \
-              --notes "Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).
-
-Built with GitHub Actions on ${{ github.run_id }}
-Kernel: Linux 6.6.144-Clyra-Flip
-Devices: ruan, dizi
-Android: 14, 15, 16, 17
-Compiler: AOSP clang-r416183b (or NDK fallback)
-Features: KernelSU, susfs, CAF/Qualcomm platform support
-
-Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version."
+              --notes-file /tmp/release-notes.md
             gh release upload v1.0.0 "$ZIP" --clobber
           fi
-
           echo "Upload complete!"
 
       - name: Print release URL
