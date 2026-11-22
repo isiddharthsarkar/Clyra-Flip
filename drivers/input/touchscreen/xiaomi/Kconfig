@@ -7,3 +7,22 @@ config TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 		If unsure, say N.
 
 		To compile this driver as a module, choose M here:
+		the module will be called xiaomi_touch.
+
+config INPUT_XIAOMI_PEN
+	tristate "Xiaomi Redmi / POCO Pen support"
+	depends on INPUT && TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+	help
+		Say Y here if you want to use the Redmi Pen or POCO Pen
+		active stylus on Xiaomi ruan platform tablets
+		(Redmi Pad Pro / POCO Pad).
+
+		This registers an input device ("Redmi/POCO Pen") that reports
+		pen contact, pressure, buttons (BTN_STYLUS / BTN_STYLUS2) and
+		tilt (ABS_TILT_X / ABS_TILT_Y). It relies on the Xiaomi touch
+		feature for pen connection state.
+
+		To compile this driver as a module, choose M here:
+		the module will be called xiaomi_pen.
+
+		If unsure, say N.

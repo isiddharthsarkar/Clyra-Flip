@@ -35,6 +35,30 @@ device drivers both skins rely on:
 
 Enable them with `CONFIG_XIAOMI_HYPEROS_SUPPORT=y` (default on).
 
+## Redmi and POCO Pen support
+
+Clyra-Flip supports the **Redmi Pen** and **POCO Pen** active stylus on
+ruan-platform tablets. A dedicated input driver registers a
+"Redmi/POCO Pen" input device reporting:
+
+- Pen contact (`BTN_TOUCH`, `BTN_TOOL_PEN`)
+- Stylus buttons (`BTN_STYLUS`, `BTN_STYLUS2`)
+- Pressure (`ABS_PRESSURE`, 0–1023)
+- Tilt (`ABS_TILT_X`, `ABS_TILT_Y`)
+- Distance (`ABS_DISTANCE`)
+
+Enable with:
+
+```
+CONFIG_INPUT_XIAOMI_PEN=m
+```
+
+The driver (`drivers/input/touchscreen/xiaomi/xiaomi_pen.c`) builds on the
+existing Xiaomi touch feature (`CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE`)
+for pen connection state. It is enabled by default in `ruan_GKI.config`
+and inherited by all Android-version fragments (Android 14/15/16), so it
+works with both HyperOS and stock AOSP vendor ramdisks.
+
 ## Tree origin
 
 This tree is a fork of [noble6/kernel_xiaomi_ruan](https://github.com/noble6/kernel_xiaomi_ruan)
