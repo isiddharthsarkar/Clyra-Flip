@@ -21,10 +21,6 @@
 #   - aarch64-linux-gnu- cross toolchain (CROSS_COMPILE)
 #   - GNU make
 #
-# Examples:
-#   ./build.sh                                          # default ruan (stock ROM config)
-#   ./build.sh /path/to/clang-r416183b                  # with explicit clang dir
-#   ./build.sh dizi                                     # default dizi (stock ROM config, WiFi)
 #   ./build.sh ruan android14                           # Android 14 / GKI 2.0
 #   ./build.sh dizi android15 Image                     # Android 15 / GKI 3.0, build Image only
 #   ./build.sh ruan android16 modules dtbs              # Android 16 / GKI 3.1
@@ -70,7 +66,7 @@ if [ -z "$CLANG_DIR" ] || [ ! -x "$CLANG_DIR/bin/clang" ]; then
     exit 1
 fi
 
-# Verify clang version (caramel requires r416183b for KMI compatibility)
+# Verify clang version (requires r416183b for KMI compatibility)
 CLANG_VERSION=$("$CLANG_DIR/bin/clang" --version 2>/dev/null | head -1)
 echo "Using clang: $CLANG_VERSION"
 echo "Clang dir:   $CLANG_DIR"
