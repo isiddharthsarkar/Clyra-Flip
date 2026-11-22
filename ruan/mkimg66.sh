@@ -12,6 +12,7 @@
 #                    applied by the bootloader. The bootloader needs a real
 #                    board overlay: an empty entry drops it to fastboot.
 #
+# Works with HyperOS and stock AOSP vendor ramdisks on Android 14/15/16.
 # The ROM's own 5.10 modules on vendor_dlkm fail to load, which is harmless.
 # Flash all three; flash the saved stock images back to return.
 #

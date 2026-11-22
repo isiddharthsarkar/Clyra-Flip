@@ -1,0 +1,23 @@
+# Build config for Xiaomi ruan (SM7435) — Android 16 / GKI 3.1 / kernel 6.6
+# Produces a kernel + vendor modules compatible with Android 16 HyperOS and AOSP.
+
+export COMMON_ANDROID_VERSION=16
+export GKI_VERSION=3.1
+export DEVICE=ruan
+export MSM_ARCH=parrot
+
+# Configs: base GKI -> platform (parrot) -> device (ruan) -> Android version fragment -> debugfs
+export CONFIG_FILES="\
+    arch/arm64/configs/gki_defconfig \
+    arch/arm64/configs/vendor/parrot_GKI.config \
+    arch/arm64/configs/vendor/ruan_GKI.config \
+    arch/arm64/configs/vendor/ruan_android16.config \
+    arch/arm64/configs/vendor/debugfs.config"
+
+# Build both first-stage and vendor_dlkm module sets so HyperOS and AOSP
+# vendor ramdisks can load them.
+export BUILD_VENDOR_DLKM=1
+export DT_OVERLAY_SUPPORT=1
+
+# Targets
+export MAKE_GOALS="Image modules dtbs"
