@@ -201,6 +201,50 @@ You can pass extra make targets after the device and version, e.g.
 Boot image: `arch/arm64/boot/Image`; DTBs under
 `arch/arm64/boot/dts/vendor/qcom/`.
 
+## Flashing via TWRP / OrangeFox
+
+The `flashable/` directory contains everything needed to package the
+built kernel into a TWRP/OrangeFox flashable zip:
+
+```
+flashable/
+├── META-INF/com/google/android/updater-script
+├── package.sh
+└── README.md
+```
+
+### Package the flashable zip
+
+After building the kernel:
+
+```sh
+# ruan (5G model)
+./flashable/package.sh out-ruan66 /path/to/stock/vendor_boot.img
+
+# dizi (WiFi model)
+./flashable/package.sh out-dizi66 /path/to/stock/vendor_boot.img
+```
+
+The `vendor_boot.img` is required — extract it from your stock ROM
+firmware package or from the current `vendor_boot_a`/`vendor_boot_b`
+partition.
+
+This produces:
+```
+clyra-flip-kernel-ruan-6.6.144-Clyra-Flip.zip
+```
+
+### Flash
+
+1. Copy the `.zip` to your device's internal storage or USB-OTG drive.
+2. Reboot to TWRP / OrangeFox recovery.
+3. **Install** → select the zip → swipe to flash.
+4. (Optional) Wipe cache/dalvik.
+5. Reboot to system.
+
+The updater-script flashes `boot.img`, `dtbo.img`, and
+`vendor_boot.img` to both A/B slots automatically.
+
 See `ruan/mkimg66.sh` for the ruan test-image workflow (boot66.img,
 vendor_boot66.img, dtbo66.img) for booting the 6.6 kernel on an installed
 ROM (no ROM build required).
