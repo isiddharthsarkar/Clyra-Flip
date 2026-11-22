@@ -116,6 +116,8 @@ jobs:
                 echo "Found clang at: $CLANG_BIN"
                 echo "CLANG_DIR=$CLANG_DIR" >> $GITHUB_ENV
                 echo "CLANG_DIR_FALLBACK=$CLANG_DIR" >> $GITHUB_ENV
+                echo "Using NDK clang: $CLANG_BIN"
+                $CLANG_BIN --version
             else
                 echo "ERROR: No clang found in NDK!"
                 find ~/clyra-tools/android-ndk-r26b -name "*clang*" 2>/dev/null | head -20 || true
@@ -125,9 +127,10 @@ jobs:
           if [ -x ~/clyra-tools/clang-r416183b/bin/clang ]; then
             echo "CLANG_DIR=~/clyra-tools/clang-r416183b" >> $GITHUB_ENV
             ~/clyra-tools/clang-r416183b/bin/clang --version
-          elif [ -n "${CLANG_DIR_FALLBACK:-}" ] && [ -x "${CLANG_DIR_FALLBACK}/bin/clang" ]; then
-            echo "Using NDK clang fallback"
-            ${CLANG_DIR_FALLBACK}/bin/clang --version
+          elif [ -n "${CLANG_DIR_FALLBACK:-}" ]; then
+            echo "Using NDK clang fallback: $CLANG_DIR_FALLBACK"
+            # Verify the clang compiler binary exists
+            ls -la "$CLANG_DIR_FALLBACK"/aarch64-linux-android*-clang 2>/dev/null || ls -la "$CLANG_DIR_FALLBACK"/*clang* 2>/dev/null || true
           else
             echo "ERROR: No clang found!"
             ls -la ~/clyra-tools/ || true
