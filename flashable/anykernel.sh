@@ -1,10 +1,11 @@
 ### AnyKernel3 Ramdisk Mod Script
 ## Clyra-Flip Kernel 6.6.144-Clyra-Flip — Universal for Xiaomi ruan & dizi (SM7435)
+## Auto-detects device AND Android version — flash and reboot, no choices needed.
 
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan/dizi (universal)
+kernel.string=Clyra-Flip Kernel 6.6.144-Clyra-Flip — Universal ruan/dizi, Android 14-17
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -37,12 +38,29 @@ ui_print " "
 ui_print "Device detected: $DEVICE"
 ui_print " "
 
-# --- Select the correct kernel Image for this device -----------------------
-if [ -f "Image.${DEVICE}" ]; then
-  cp "Image.${DEVICE}" "Image"
-  ui_print "Using kernel: Image.${DEVICE}"
+# --- Detect Android version -----------------------------------------------
+# Map SDK / release to Android version for kernel selection.
+ANDROID_VER=$(getprop ro.build.version.release 2>/dev/null)
+[ -z "$ANDROID_VER" ] && ANDROID_VER=$(getprop ro.build.version.sdk 2>/dev/null)
+
+case "$ANDROID_VER" in
+  14|34) ANDROID_VER="android14" ;;
+  15|35) ANDROID_VER="android15" ;;
+  16|36) ANDROID_VER="android16" ;;
+  17|37) ANDROID_VER="android17" ;;
+  *)     abort "Unsupported Android version: $ANDROID_VER. Aborting..." ;;
+esac
+
+ui_print "Android version: $ANDROID_VER"
+ui_print " "
+
+# --- Select the correct kernel Image for device + Android ------------------
+KERNEL_IMG="Image.${DEVICE}.${ANDROID_VER}"
+if [ -f "$KERNEL_IMG" ]; then
+  cp "$KERNEL_IMG" "Image"
+  ui_print "Using kernel: $KERNEL_IMG"
 else
-  abort "Kernel Image for $DEVICE not found in zip. Aborting..."
+  abort "Kernel Image $KERNEL_IMG not found in zip. Aborting..."
 fi
 
 # --- Verify DTB for this device -------------------------------------------
@@ -113,5 +131,5 @@ write_boot;
 ## end vendor_boot install
 
 ui_print " "
-ui_print "Clyra-Flip Kernel installed for $DEVICE!"
+ui_print "Clyra-Flip Kernel installed for $DEVICE on $ANDROID_VER!"
 ui_print "Reboot to system."
