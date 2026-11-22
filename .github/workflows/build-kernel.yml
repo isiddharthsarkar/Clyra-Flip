@@ -87,58 +87,37 @@ jobs:
 
       - name: Setup AOSP clang
         run: |
-          set +e
+          set -euo pipefail
           # Install AOSP-compatible clang (clang-14, close to clang-r416183b used by GKI builds)
           # Ubuntu system clang 21.x is too new and produces different symbol CRCs,
           # breaking KMI compatibility with stock vendor modules.
-          CLANG_AVAILABLE=0
-          if command -v clang-14 >/dev/null 2>&1; then
-            echo "clang-14 already available"
-            CLANG_AVAILABLE=1
-          else
-            echo "Installing clang-14..."
-            sudo apt-get update -qq
-            sudo apt-get install -y clang-14 llvm-14 lld-14 2>&1 | tail -10
-            if command -v clang-14 >/dev/null 2>&1; then
-              echo "clang-14 installed successfully"
-              CLANG_AVAILABLE=1
-            else
-              echo "WARNING: Failed to install clang-14, will try LLVM apt repo"
-              sudo apt-get install -y wget gnupg software-properties-common 2>&1 | tail -5
-              wget -q -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg 2>&1
-              echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main" | sudo tee /etc/apt/sources.list.d/llvm.list
-              sudo apt-get update -qq 2>&1 | tail -5
-              sudo apt-get install -y clang-14 llvm-14 lld-14 2>&1 | tail -10
-              if command -v clang-14 >/dev/null 2>&1; then
-                echo "clang-14 installed via LLVM repo"
-                CLANG_AVAILABLE=1
-              else
-                echo "WARNING: Failed to install clang-14, falling back to system clang"
-              fi
-            fi
+          # clang-14 is mandatory - no fallback to system clang.
+          echo "Installing clang-14 via LLVM apt repository..."
+          sudo apt-get update -qq
+          sudo apt-get install -y wget gnupg software-properties-common
+          wget -q -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+          UBUNTU_CODENAME=$(lsb_release -cs)
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-14 main" | sudo tee /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -qq
+          sudo apt-get install -y clang-14 llvm-14 lld-14
+          # Verify clang-14 is available
+          if ! command -v clang-14 >/dev/null 2>&1; then
+            echo "ERROR: clang-14 installation failed" >&2
+            exit 1
           fi
-
-          if [ $CLANG_AVAILABLE -eq 1 ]; then
-            mkdir -p "$HOME/clyra-tools/aosp-clang/bin"
-            ln -sf /usr/bin/clang-14 "$HOME/clyra-tools/aosp-clang/bin/clang"
-            ln -sf /usr/bin/clang++-14 "$HOME/clyra-tools/aosp-clang/bin/clang++"
-            ln -sf /usr/bin/llvm-ar-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-ar" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-nm-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-nm" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-objcopy-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-objcopy" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-strip-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-strip" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-readelf-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-readelf" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-objdump-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-objdump" 2>/dev/null || true
-            echo "CLANG_DIR=$HOME/clyra-tools/aosp-clang" >> $GITHUB_ENV
-            echo "Using AOSP-compatible clang:"
-            "$HOME/clyra-tools/aosp-clang/bin/clang" --version
-          else
-            mkdir -p "$HOME/clyra-tools/system-clang/bin"
-            ln -sf /usr/bin/clang "$HOME/clyra-tools/system-clang/bin/clang"
-            ln -sf /usr/bin/clang++ "$HOME/clyra-tools/system-clang/bin/clang++"
-            echo "CLANG_DIR=$HOME/clyra-tools/system-clang" >> $GITHUB_ENV
-            echo "Using system clang (fallback):"
-            /usr/bin/clang --version
-          fi
+          # Create directory structure expected by build.sh: CLANG_DIR/bin/clang
+          mkdir -p "$HOME/clyra-tools/aosp-clang/bin"
+          ln -sf /usr/bin/clang-14 "$HOME/clyra-tools/aosp-clang/bin/clang"
+          ln -sf /usr/bin/clang++-14 "$HOME/clyra-tools/aosp-clang/bin/clang++"
+          ln -sf /usr/bin/llvm-ar-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-ar" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-nm-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-nm" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-objcopy-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-objcopy" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-strip-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-strip" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-readelf-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-readelf" 2>/dev/null || true
+          ln -sf /usr/bin/llvm-objdump-14 "$HOME/clyra-tools/aosp-clang/bin/llvm-objdump" 2>/dev/null || true
+          echo "CLANG_DIR=$HOME/clyra-tools/aosp-clang" >> $GITHUB_ENV
+          echo "Using AOSP-compatible clang:"
+          "$HOME/clyra-tools/aosp-clang/bin/clang" --version
 
       - name: Determine build matrix
         id: matrix
