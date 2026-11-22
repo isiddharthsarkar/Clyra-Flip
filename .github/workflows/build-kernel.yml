@@ -183,20 +183,15 @@ jobs:
       - name: Write release notes file
         if: (github.event.inputs.upload_release == 'true' || github.event_name == 'push') && success()
         run: |
-          cat > /tmp/release-notes.md << 'NOTES_EOF'
-Clyra-Flip Kernel v1.0.0
-
-Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).
-
-Built with GitHub Actions
-Kernel: Linux 6.6.144-Clyra-Flip
-Devices: ruan, dizi
-Android: 14, 15, 16, 17
-Compiler: AOSP clang-r416183b (or NDK fallback)
-Features: KernelSU, susfs, CAF/Qualcomm platform support
-
-Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version.
-NOTES_EOF
+          printf 'Clyra-Flip Kernel v1.0.0\n\n' > /tmp/release-notes.md
+          printf 'Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).\n\n' >> /tmp/release-notes.md
+          printf 'Built with GitHub Actions\n' >> /tmp/release-notes.md
+          printf 'Kernel: Linux 6.6.144-Clyra-Flip\n' >> /tmp/release-notes.md
+          printf 'Devices: ruan, dizi\n' >> /tmp/release-notes.md
+          printf 'Android: 14, 15, 16, 17\n' >> /tmp/release-notes.md
+          printf 'Compiler: AOSP clang-r416183b (or NDK fallback)\n' >> /tmp/release-notes.md
+          printf 'Features: KernelSU, susfs, CAF/Qualcomm platform support\n\n' >> /tmp/release-notes.md
+          printf 'Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version.\n' >> /tmp/release-notes.md
           cat /tmp/release-notes.md
 
       - name: Upload to GitHub Release v1.0.0
