@@ -25,6 +25,7 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/version.h>
 
 #include "ksu.h"
@@ -41,7 +42,6 @@ struct ksu_state ksu_gs = {
 	.hide_root = true,
 	.debug = false,
 	.log_ops = false,
-	.lock = __MUTEX_INITIALIZER,
 	.procs = LIST_HEAD_INIT(ksu_gs.procs),
 	.proc_count = 0,
 };
@@ -331,9 +331,11 @@ static const struct proc_ops ksu_proc_fops = {
  * Module init / exit
  * ------------------------------------------------------------------------ */
 
-static int __init ksu_init(void)
+int __init ksu_init(void)
 {
 	int ret;
+
+	mutex_init(&ksu_gs.lock);
 
 	pr_info("KernelSU %s initializing\n", KSU_VERSION);
 
@@ -384,7 +386,7 @@ unregister_chrdev:
 	return ret;
 }
 
-static void __exit ksu_exit(void)
+void __exit ksu_exit(void)
 {
 	/* Remove proc entries */
 	if (ksu_proc_status)
