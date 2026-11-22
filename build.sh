@@ -104,6 +104,7 @@ done
 # Default device is ruan.
 [ -n "$DEVICE" ] || DEVICE=ruan
 O=${O:-$K/../out-${DEVICE}66}
+[ -n "$ANDROID_VER" ] && O="${O}.${ANDROID_VER}"
 
 M="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 \
     CROSS_COMPILE=$CROSS_COMPILE \
