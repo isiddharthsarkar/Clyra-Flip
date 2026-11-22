@@ -106,10 +106,10 @@ done
 O=${O:-$K/out-${DEVICE}66}
 [ -n "$ANDROID_VER" ] && O="${O}.${ANDROID_VER}"
 
-M="make -C $K O=$O ARCH=arm64 LLVM=1 LLVM_IAS=1 \
-    CROSS_COMPILE=$CROSS_COMPILE \
-    CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
-    HOSTCFLAGS=$HOSTCFLAGS HOSTLDFLAGS=$HOSTLDFLAGS"
+M=(make -C "$K" O="$O" ARCH=arm64 LLVM=1 LLVM_IAS=1 \
+    CROSS_COMPILE="$CROSS_COMPILE" \
+    CROSS_COMPILE_ARM32="$CROSS_COMPILE_ARM32" \
+    HOSTCFLAGS="$HOSTCFLAGS" HOSTLDFLAGS="$HOSTLDFLAGS")
 
 echo "Device:      $DEVICE"
 echo "Output dir:  $O"
@@ -124,14 +124,13 @@ if [ -n "$ANDROID_VER" ]; then
     . "$BC"
     echo "Android:     $ANDROID_VER (GKI $GKI_VERSION)"
     echo "Configs:     $CONFIG_FILES"
-    # shellcheck disable=SC2086
-    $M $CONFIG_FILES
+    "${M[@]}" $CONFIG_FILES
 else
     echo "Android:     stock ROM config"
     if [ "$DEVICE" = "dizi" ]; then
-        $M gki_defconfig vendor/parrot_GKI.config vendor/dizi_GKI.config vendor/debugfs.config
+        "${M[@]}" gki_defconfig vendor/parrot_GKI.config vendor/dizi_GKI.config vendor/debugfs.config
     else
-        $M gki_defconfig vendor/parrot_GKI.config vendor/ruan_GKI.config vendor/debugfs.config
+        "${M[@]}" gki_defconfig vendor/parrot_GKI.config vendor/ruan_GKI.config vendor/debugfs.config
     fi
 fi
 
@@ -141,4 +140,4 @@ else
     set -- Image modules dtbs
 fi
 echo "Targets:     $*"
-$M -j"$(nproc)" "$@"
+"${M[@]}" -j"$(nproc)" "$@"
