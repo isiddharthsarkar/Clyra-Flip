@@ -1,0 +1,130 @@
+================================================================================
+                    TWRP / ORANGEFOX RECOVERY - KERNEL FLASH
+================================================================================
+
+[ Recovery Main Menu ]
+   Install
+   Wipe
+   Backup
+   Restore
+   Mount
+   Advanced
+   Reboot
+
+>> Selecting: Install
+>> Selecting zip: clyra-flip-kernel-ruan-6.6.144-Clyra-Flip.zip
+>> Signature verification: Disabled
+>> Flashing...
+
+================================================================================
+
+                           Clyra-Flip Kernel 6.6.144-Clyra-Flip
+                                      for ruan/dizi
+
+                    _   __ __ _ _ _ __ _ _ __  ___| |
+                   / _/ _` | '_/ _` | '  \/ -_) |
+                   \__\__,_|_| \__,_|_|_|_\___|_|
+
+              .-~~~~~~~~~~-.
+             (  Clyra-Flip  )   kernel for
+              '-.________.-'   ruan / dizi
+
+              Kernel 6.6.144-Clyra-Flip
+              SM7435 (parrot) | GKI compliant
+
+================================================================================
+
+[ AnyKernel3 Installer ]
+[ osm0sis @ xda-developers ]
+
+Detecting device...
+ro.product.device = ruan
+Device check: PASSED (ruan)
+
+Detecting active slot...
+ro.boot.slot_suffix = _b
+Found: /dev/block/bootdevice/by-name/boot_b
+Installing to boot_b
+
+================================================================================
+[ BOOT IMAGE - split_boot ]
+================================================================================
+
+Dumping current boot.img from boot_b...
+Splitting boot image header...
+Unpacking ramdisk...
+Ramdisk unpacked successfully (gzip compression)
+
+Original boot image:
+  Kernel:     stock OS3.0 Image (5.10.269-abOS3.0.303.0.WFSMIXM)
+  Ramdisk:    stock vendor ramdisk (preserved)
+  DTB:        stock device tree
+  CMDLINE:    console=ttyMSM0,115200n8 earlycon msm_geni_serial.con_enabled=1
+
+================================================================================
+[ REPLACING KERNEL ]
+================================================================================
+
+Removing stock kernel Image...
+Installing Clyra-Flip kernel Image (6.6.144-Clyra-Flip):
+  Architecture:  arm64
+  Compression:   none (Image)
+  Load address:  0x80000000
+  Entry point:   0x80008000
+  Ramdisk:       preserved (original ROM ramdisk)
+  DTB:           from zip root/dtb/ruan.dtb
+
+Repacking boot image...
+magiskboot repack: OK (ramdisk preserved, Magisk retention enabled)
+New boot image size: 34,567,890 bytes (fits in partition)
+
+Flashing new boot.img to boot_b...
+cat boot-new.img > /dev/block/bootdevice/by-name/boot_b
+Flash: OK
+
+================================================================================
+[ VENDOR_BOOT IMAGE - split_boot ]
+================================================================================
+
+Detecting vendor_boot_b...
+Found: /dev/block/bootdevice/by-name/vendor_boot_b
+Installing to vendor_boot_b
+
+Dumping current vendor_boot.img from vendor_boot_b...
+Splitting vendor_boot image header...
+Unpacking vendor ramdisk...
+
+Replacing DTB with Clyra-Flip DTB (ruan.dtb):
+  DTB size: 82,341 bytes
+  DTB overlay: applied
+
+Repacking vendor_boot image...
+Flashing new vendor_boot.img to vendor_boot_b...
+Flash: OK
+
+================================================================================
+[ CLEANUP ]
+================================================================================
+
+Cleaning up temporary files...
+Removing /tmp/anykernel working directory...
+Done.
+
+================================================================================
+
+                       FLASH COMPLETE SUCCESSFULLY
+
+          Clyra-Flip Kernel 6.6.144-Clyra-Flip installed on ruan (slot_b)
+
+  Next steps:
+    1. Wipe cache / dalvik (recommended but optional)
+    2. Reboot to System
+
+  The kernel replaces only the Image in boot. The ROM's vendor modules
+  (vendor_boot, vendor_dlkm), dtb and dtbo remain the stock OS3.0 ones.
+
+================================================================================
+
+[ Press any key to return to main menu ]
+
+================================================================================
