@@ -1,0 +1,182 @@
+name: Build Clyra-Flip Kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'Device to build (ruan, dizi, or all)'
+        required: false
+        default: 'all'
+      android:
+        description: 'Android version (android14, android15, android16, android17, or all)'
+        required: false
+        default: 'all'
+      upload_release:
+        description: 'Upload zip to GitHub Release v1.0.0'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'build.sh'
+      - 'flashable/**'
+      - '.github/workflows/build-kernel.yml'
+      - 'arch/arm64/configs/vendor/**'
+      - 'build.config.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            curl \
+            wget \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            xz-utils \
+            tar \
+            gzip \
+            unzip \
+            zip \
+            python3 \
+            python3-pip \
+            aarch64-linux-gnu-gcc \
+            arm-linux-gnueabi-gcc \
+            rsync \
+            file \
+            make \
+            gcc \
+            clang \
+            llvm \
+            lld
+
+      - name: Verify cross compilers
+        run: |
+          which aarch64-linux-gnu-gcc
+          which arm-linux-gnueabi-gcc
+          aarch64-linux-gnu-gcc --version | head -1
+
+      - name: Download AOSP clang-r416183b
+        run: |
+          mkdir -p ~/clyra-tools
+          cd ~/clyra-tools
+          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/clang-r416183b.tar.gz
+          tar -xzf clang-r416183b.tar.gz
+          ~/clyra-tools/clang-r416183b/bin/clang --version
+
+      - name: Determine build matrix
+        id: matrix
+        run: |
+          DEVICE="${{ github.event.inputs.device }}"
+          ANDROID="${{ github.event.inputs.android }}"
+          
+          if [ "$DEVICE" = "all" ]; then
+            DEVICES="ruan dizi"
+          else
+            DEVICES="$DEVICE"
+          fi
+          
+          if [ "$ANDROID" = "all" ]; then
+            ANDROIDS="android14 android15 android16 android17"
+          else
+            ANDROIDS="$ANDROID"
+          fi
+          
+          echo "devices=$DEVICES" >> $GITHUB_OUTPUT
+          echo "androids=$ANDROIDS" >> $GITHUB_OUTPUT
+
+      - name: Build all kernel combinations
+        run: |
+          CLANG_DIR=~/clyra-tools/clang-r416183b
+          
+          for dev in ${{ steps.matrix.outputs.devices }}; do
+            for ver in ${{ steps.matrix.outputs.androids }}; do
+              echo "========================================"
+              echo "Building $dev $ver"
+              echo "========================================"
+              ./build.sh $CLANG_DIR $dev $ver
+              
+              # Verify build output
+              if [ ! -f "out-${dev}66.${ver}/arch/arm64/boot/Image" ]; then
+                echo "ERROR: Build failed for $dev $ver - Image not found"
+                exit 1
+              fi
+              echo "SUCCESS: $dev $ver built"
+            done
+          done
+
+      - name: Package universal flashable zip
+        run: |
+          ./flashable/package.sh .
+
+      - name: Verify zip contents
+        run: |
+          ZIP=$(ls clyra-flip-kernel-universal-*.zip)
+          echo "Zip created: $ZIP"
+          unzip -l "$ZIP"
+
+      - name: Upload zip as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clyra-flip-kernel-universal-zip
+          path: clyra-flip-kernel-universal-*.zip
+          retention-days: 7
+
+      - name: Upload to GitHub Release v1.0.0
+        if: github.event.inputs.upload_release == 'true' || github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ZIP=$(ls clyra-flip-kernel-universal-*.zip)
+          echo "Uploading $ZIP to release v1.0.0..."
+          
+          # Check if release v1.0.0 exists
+          if gh release view v1.0.0 --json tagName -q .tagName 2>/dev/null | grep -q "v1.0.0"; then
+            echo "Release v1.0.0 exists, uploading asset..."
+            gh release upload v1.0.0 "$ZIP" --clobber
+          else
+            echo "Release v1.0.0 does not exist, creating it..."
+            gh release create v1.0.0 \
+              --title "Clyra-Flip Kernel v1.0.0" \
+              --notes "Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).
+              
+Built with GitHub Actions on ${{ github.run_id }}
+Kernel: Linux 6.6.144-Clyra-Flip
+Devices: ruan, dizi
+Android: 14, 15, 16, 17
+Compiler: AOSP clang-r416183b
+Features: KernelSU, susfs, CAF/Qualcomm platform support
+
+Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version."
+            gh release upload v1.0.0 "$ZIP" --clobber
+          fi
+          
+          echo "Upload complete!"
+
+      - name: Print release URL
+        run: |
+          echo "========================================"
+          echo "Build complete!"
+          echo "Release: https://github.com/${{ github.repository }}/releases/tag/v1.0.0"
+          echo "Artifacts: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "========================================"
