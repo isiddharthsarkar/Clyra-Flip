@@ -203,15 +203,30 @@ Boot image: `arch/arm64/boot/Image`; DTBs under
 
 ## Flashing via TWRP / OrangeFox
 
-The `flashable/` directory contains everything needed to package the
-built kernel into a TWRP/OrangeFox flashable zip:
+The `flashable/` directory contains an **AnyKernel3**-compatible flashable
+zip template for packaging the built kernel into a TWRP/OrangeFox-installable
+zip:
 
 ```
 flashable/
-├── META-INF/com/google/android/updater-script
+├── anykernel.sh
 ├── package.sh
-└── README.md
+├── README.md
+├── ramdisk/
+├── patch/
+├── modules/
+├── tools/
+│   ├── ak3-core.sh
+│   ├── magiskboot
+│   └── busybox
+└── META-INF/
+    └── com/google/android/
+        ├── update-binary
+        └── updater-script
 ```
+
+AnyKernel3 patches the device's boot image at flash time using `magiskboot`,
+preserving the original ramdisk structure and supporting Magisk retention.
 
 ### Package the flashable zip
 
@@ -219,17 +234,14 @@ After building the kernel:
 
 ```sh
 # ruan (5G model)
-./flashable/package.sh out-ruan66 /path/to/stock/vendor_boot.img
+./flashable/package.sh out-ruan66
 
 # dizi (WiFi model)
-./flashable/package.sh out-dizi66 /path/to/stock/vendor_boot.img
+./flashable/package.sh out-dizi66
 ```
 
-The `vendor_boot.img` is required — extract it from your stock ROM
-firmware package or from the current `vendor_boot_a`/`vendor_boot_b`
-partition.
-
-This produces:
+The package script copies the kernel `Image` and DTBs from the build output
+into the AnyKernel3 zip structure and creates:
 ```
 clyra-flip-kernel-ruan-6.6.144-Clyra-Flip.zip
 ```
@@ -242,8 +254,10 @@ clyra-flip-kernel-ruan-6.6.144-Clyra-Flip.zip
 4. (Optional) Wipe cache/dalvik.
 5. Reboot to system.
 
-The updater-script flashes `boot.img`, `dtbo.img`, and
-`vendor_boot.img` to both A/B slots automatically.
+AnyKernel3 will auto-detect your device (ruan/dizi), dump the current
+`boot.img` from the active slot, replace the kernel with Clyra-Flip, repack
+and flash to both A/B slots. The `vendor_boot` partition is also patched with
+the new DTB if included.
 
 See `ruan/mkimg66.sh` for the ruan test-image workflow (boot66.img,
 vendor_boot66.img, dtbo66.img) for booting the 6.6 kernel on an installed

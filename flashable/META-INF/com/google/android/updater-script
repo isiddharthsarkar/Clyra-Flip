@@ -1,37 +1,6 @@
-ui_print("========================================");
-ui_print("  Clyra-Flip Kernel Installer");
-ui_print("========================================");
-ui_print("");
-ui_print("Device: " + getprop("ro.product.device"));
-ui_print("Model:  " + getprop("ro.product.model"));
-ui_print("");
-
-// Assert supported device (ruan = 5G, dizi = WiFi)
-assert(is_substr("ruan", getprop("ro.product.device")) || is_substr("dizi", getprop("ro.product.device")));
-
-ui_print("");
-ui_print("Flashing Clyra-Flip kernel 6.6.144-Clyra-Flip...");
-ui_print("");
-
-# Extract kernel images to /tmp
-package_extract_file("boot.img", "/tmp/boot.img");
-package_extract_file("dtbo.img", "/tmp/dtbo.img");
-package_extract_file("vendor_boot.img", "/tmp/vendor_boot.img");
-
-# Flash boot image to both slots (A/B partition scheme)
-write_raw_image("/tmp/boot.img", "boot_a");
-write_raw_image("/tmp/boot.img", "boot_b");
-
-# Flash dtbo to both slots
-write_raw_image("/tmp/dtbo.img", "dtbo_a");
-write_raw_image("/tmp/dtbo.img", "dtbo_b");
-
-# Flash vendor_boot to both slots
-write_raw_image("/tmp/vendor_boot.img", "vendor_boot_a");
-write_raw_image("/tmp/vendor_boot.img", "vendor_boot_b");
-
-ui_print("");
-ui_print("Clyra-Flip kernel installed successfully!");
-ui_print("Reboot to system.");
-ui_print("");
-ui_print("========================================");
+#FLASHAFTERUPDATEV2
+#
+# Dummy file; update-binary is a shell script (DO NOT CHANGE)
+#
+# AnyKernel3 backend handles the installation via anykernel.sh
+# AK_BASE_VERSION=20261122
