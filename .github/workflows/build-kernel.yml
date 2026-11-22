@@ -101,7 +101,8 @@ jobs:
             curl -L -f -s -o android-ndk.zip \
               "https://dl.google.com/android/repository/android-ndk-r26b-linux.zip"
             unzip -q android-ndk.zip
-            export CLANG_DIR=$(find ~/clyra-tools/android-ndk-r26b -name "clang" -type f | head -1 | xargs dirname | xargs dirname)
+            # NDK r26b clang is at: android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64
+            export CLANG_DIR=~/clyra-tools/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64
             echo "NDK clang dir: $CLANG_DIR"
             echo "CLANG_DIR_FALLBACK=$CLANG_DIR" >> $GITHUB_ENV
           fi
