@@ -119,24 +119,70 @@ jobs:
 
       - name: Build all kernel combinations
         run: |
-          set -euo pipefail
+          set -uo pipefail
           CLANG_DIR="${CLANG_DIR:-$HOME/clyra-tools/system-clang}"
           echo "Using CLANG_DIR: $CLANG_DIR"
           ls -la "$CLANG_DIR/bin/clang" || echo "WARNING: clang not found at expected path"
+          DIAG="/tmp/build-diagnostics.txt"
+          {
+            echo "Build Diagnostics"
+            echo "================="
+            echo "CLANG_DIR: $CLANG_DIR"
+            echo "clang version: $("$CLANG_DIR/bin/clang" --version 2>/dev/null | head -1)"
+            echo ""
+          } > "$DIAG"
+          FAILED=0
           for dev in ${{ steps.matrix.outputs.devices }}; do
             for ver in ${{ steps.matrix.outputs.androids }}; do
-              echo "========================================"
+              echo "=========================================="
               echo "Building $dev $ver"
-              echo "========================================"
-              ./build.sh "$CLANG_DIR" "$dev" "$ver"
-              if [ ! -f "out-${dev}66.${ver}/arch/arm64/boot/Image" ]; then
-                echo "ERROR: Build failed for $dev $ver - Image not found"
-                ls -la "out-${dev}66.${ver}/arch/arm64/boot/" 2>/dev/null || echo "No boot dir"
-                exit 1
+              echo "=========================================="
+              {
+                echo "--- $dev $ver ---"
+              } >> "$DIAG"
+              if ./build.sh "$CLANG_DIR" "$dev" "$ver" >> "$DIAG" 2>&1; then
+                if [ -f "out-${dev}66.${ver}/arch/arm64/boot/Image" ]; then
+                  echo "SUCCESS: $dev $ver built"
+                  echo "RESULT: PASS - Image found" >> "$DIAG"
+                else
+                  echo "ERROR: Build succeeded but Image not found for $dev $ver"
+                  ls -la "out-${dev}66.${ver}/arch/arm64/boot/" 2>/dev/null || echo "No boot dir"
+                  ls -la "out-${dev}66.${ver}/arch/arm64/boot/" 2>/dev/null >> "$DIAG" || echo "No boot dir" >> "$DIAG"
+                  echo "RESULT: FAIL - Image not found despite build success" >> "$DIAG"
+                  FAILED=1
+                fi
+              else
+                EXIT_CODE=$?
+                echo "ERROR: Build failed for $dev $ver with exit code $EXIT_CODE"
+                echo "RESULT: FAIL - build.sh exited with code $EXIT_CODE" >> "$DIAG"
+                FAILED=1
               fi
-              echo "SUCCESS: $dev $ver built"
+              echo "" >> "$DIAG"
             done
           done
+          echo "" >> "$DIAG"
+          if [ $FAILED -eq 0 ]; then
+            echo "All builds passed"
+            echo "OVERALL: ALL PASS" >> "$DIAG"
+          else
+            echo "Some builds failed"
+            echo "OVERALL: SOME FAIL" >> "$DIAG"
+            exit 1
+          fi
+
+      - name: Save build diagnostics
+        if: always()
+        run: |
+          set -e
+          DIAG="/tmp/build-diagnostics.txt"
+          if [ -f "$DIAG" ]; then
+            cp "$DIAG" build-diagnostics.txt
+            git config user.email "clyra-flip@github-actions"
+            git config user.name "Clyra-Flip CI"
+            git add build-diagnostics.txt
+            git commit -m "CI: build diagnostics from run ${{ github.run_id }}" || true
+            git push origin main || true
+          fi
 
       - name: Package universal flashable zip
         run: |
