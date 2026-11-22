@@ -86,12 +86,12 @@ jobs:
           set -euo pipefail
           # Use system clang from apt (already installed in dependencies)
           # Create a directory structure expected by build.sh: CLANG_DIR/bin/clang
-          mkdir -p ~/clyra-tools/system-clang/bin
-          ln -sf /usr/bin/clang ~/clyra-tools/system-clang/bin/clang
-          ln -sf /usr/bin/clang++ ~/clyra-tools/system-clang/bin/clang++
-          echo "CLANG_DIR=~/clyra-tools/system-clang" >> $GITHUB_ENV
+          mkdir -p "$HOME/clyra-tools/system-clang/bin"
+          ln -sf /usr/bin/clang "$HOME/clyra-tools/system-clang/bin/clang"
+          ln -sf /usr/bin/clang++ "$HOME/clyra-tools/system-clang/bin/clang++"
+          echo "CLANG_DIR=$HOME/clyra-tools/system-clang" >> $GITHUB_ENV
           echo "Using system clang:"
-          ~/clyra-tools/system-clang/bin/clang --version
+          "$HOME/clyra-tools/system-clang/bin/clang" --version
 
       - name: Determine build matrix
         id: matrix
@@ -99,6 +99,9 @@ jobs:
           set -euo pipefail
           DEVICE="${{ github.event.inputs.device }}"
           ANDROID="${{ github.event.inputs.android }}"
+          # Default to "all" when running on push (no inputs)
+          [ -z "$DEVICE" ] && DEVICE="all"
+          [ -z "$ANDROID" ] && ANDROID="all"
           if [ "$DEVICE" = "all" ]; then
             DEVICES="ruan dizi"
           else
@@ -115,7 +118,7 @@ jobs:
       - name: Build all kernel combinations
         run: |
           set -euo pipefail
-          CLANG_DIR="${CLANG_DIR:-~/clyra-tools/clang-r416183b}"
+          CLANG_DIR="${CLANG_DIR:-$HOME/clyra-tools/system-clang}"
           echo "Using CLANG_DIR: $CLANG_DIR"
           ls -la "$CLANG_DIR/bin/clang" || echo "WARNING: clang not found at expected path"
           for dev in ${{ steps.matrix.outputs.devices }}; do
@@ -136,6 +139,7 @@ jobs:
       - name: Package universal flashable zip
         run: |
           set -euo pipefail
+          chmod +x flashable/package.sh
           ./flashable/package.sh .
 
       - name: Verify zip contents
