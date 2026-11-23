@@ -25,12 +25,13 @@ supported.vendorpatchlevels=
 # Try several sources so the zip works in TWRP, OrangeFox, and stock recovery.
 DEVICE=$(getprop ro.product.device 2>/dev/null)
 [ -z "$DEVICE" ] && DEVICE=$(getprop ro.build.product 2>/dev/null)
+[ -z "$DEVICE" ] && DEVICE=$(getprop ro.product.name 2>/dev/null)
 [ -z "$DEVICE" ] && DEVICE=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
 [ -z "$DEVICE" ] && DEVICE=$(cat /proc/device-tree/compatible 2>/dev/null | tr '\0' ' ')
 
 case "$DEVICE" in
-  *ruan*)  DEVICE="ruan"  ;;
-  *dizi*)  DEVICE="dizi"  ;;
+  *ruan*|*2405CPCFAG*)  DEVICE="ruan" ;;
+  *dizi*|*POCO*Pad*|*2405CPCFBG*) DEVICE="dizi" ;;
   *)       abort "Unsupported device: $DEVICE. Aborting..." ;;
 esac
 
@@ -39,8 +40,16 @@ ui_print "Device detected: $DEVICE"
 ui_print " "
 
 # --- Detect Android version -----------------------------------------------
-# Map SDK / release to Android version for kernel selection.
-ANDROID_VER=$(getprop ro.build.version.release 2>/dev/null)
+# Check mounted ROM partitions first, then recovery getprop.
+ANDROID_VER=""
+for prop in /system/build.prop /system_root/system/build.prop /system/system/build.prop /vendor/build.prop; do
+  if [ -f "$prop" ]; then
+    rom_ver=$(grep -m1 '^ro\.build\.version\.release=' "$prop" 2>/dev/null | cut -d= -f2 | tr -d ' \r\n')
+    [ -n "$rom_ver" ] && { ANDROID_VER="$rom_ver"; break; }
+  fi
+done
+
+[ -z "$ANDROID_VER" ] && ANDROID_VER=$(getprop ro.build.version.release 2>/dev/null)
 [ -z "$ANDROID_VER" ] && ANDROID_VER=$(getprop ro.build.version.sdk 2>/dev/null)
 
 case "$ANDROID_VER" in
@@ -48,10 +57,13 @@ case "$ANDROID_VER" in
   15|35) ANDROID_VER="android15" ;;
   16|36) ANDROID_VER="android16" ;;
   17|37) ANDROID_VER="android17" ;;
-  *)     abort "Unsupported Android version: $ANDROID_VER. Aborting..." ;;
+  *)
+    ui_print "Unrecognized Android release ($ANDROID_VER), defaulting to android14 (stock baseline)"
+    ANDROID_VER="android14"
+    ;;
 esac
 
-ui_print "Android version: $ANDROID_VER"
+ui_print "Target Android release: $ANDROID_VER"
 ui_print " "
 
 # --- Select the correct kernel Image for device + Android ------------------
@@ -59,8 +71,13 @@ KERNEL_IMG="Image.${DEVICE}.${ANDROID_VER}"
 if [ -f "$KERNEL_IMG" ]; then
   cp "$KERNEL_IMG" "Image"
   ui_print "Using kernel: $KERNEL_IMG"
+elif [ -f "Image.${DEVICE}.android14" ]; then
+  cp "Image.${DEVICE}.android14" "Image"
+  ui_print "Using fallback kernel: Image.${DEVICE}.android14"
+elif [ -f "Image" ]; then
+  ui_print "Using bundled Image"
 else
-  abort "Kernel Image $KERNEL_IMG not found in zip. Aborting..."
+  abort "Kernel Image for $DEVICE not found in zip. Aborting..."
 fi
 
 # --- Optional DTB for this device ------------------------------------------
