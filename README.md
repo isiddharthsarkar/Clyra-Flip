@@ -127,7 +127,7 @@ layer on top. Both devices share the same kernel.
 
 ## Kernel version
 
-Linux stable **6.6.144**, released as **6.6.144-Clyra-Flip** (set via
+Linux stable **6.6.162**, released as **6.6.162-Clyra-Flip** (set via
 `EXTRAVERSION = -Clyra-Flip` in the top-level Makefile; `NAME = "Clyra-Flip"`).
 
 ## Configuration
@@ -261,7 +261,7 @@ After building the kernel:
 The package script copies the kernel `Image` and DTBs from the build output
 into the AnyKernel3 zip structure and creates:
 ```
-clyra-flip-kernel-ruan-6.6.144-Clyra-Flip.zip
+clyra-flip-kernel-ruan-6.6.162-Clyra-Flip.zip
 ```
 
 ### Flash

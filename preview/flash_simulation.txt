@@ -12,13 +12,13 @@
    Reboot
 
 >> Selecting: Install
->> Selecting zip: clyra-flip-kernel-ruan-6.6.144-Clyra-Flip.zip
+>> Selecting zip: clyra-flip-kernel-ruan-6.6.162-Clyra-Flip.zip
 >> Signature verification: Disabled
 >> Flashing...
 
 ================================================================================
 
-                           Clyra-Flip Kernel 6.6.144-Clyra-Flip
+                           Clyra-Flip Kernel 6.6.162-Clyra-Flip
                                       for ruan/dizi
 
                     _   __ __ _ _ _ __ _ _ __  ___| |
@@ -29,7 +29,7 @@
              (  Clyra-Flip  )   kernel for
               '-.________.-'   ruan / dizi
 
-              Kernel 6.6.144-Clyra-Flip
+              Kernel 6.6.162-Clyra-Flip
               SM7435 (parrot) | GKI compliant
 
 ================================================================================
@@ -66,7 +66,7 @@ Original boot image:
 ================================================================================
 
 Removing stock kernel Image...
-Installing Clyra-Flip kernel Image (6.6.144-Clyra-Flip):
+Installing Clyra-Flip kernel Image (6.6.162-Clyra-Flip):
   Architecture:  arm64
   Compression:   none (Image)
   Load address:  0x80000000
@@ -114,7 +114,7 @@ Done.
 
                        FLASH COMPLETE SUCCESSFULLY
 
-          Clyra-Flip Kernel 6.6.144-Clyra-Flip installed on ruan (slot_b)
+          Clyra-Flip Kernel 6.6.162-Clyra-Flip installed on ruan (slot_b)
 
   Next steps:
     1. Wipe cache / dalvik (recommended but optional)

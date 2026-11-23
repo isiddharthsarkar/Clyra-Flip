@@ -1,6 +1,6 @@
 # Clyra-Flip Kernel — Build & Universal Flashable Zip Guide
 
-Build the Linux 6.6.144 "Clyra-Flip" kernel on your own Linux machine and package it into a single universal flashable AnyKernel3 zip that works on **both ruan and dizi, across Android 14/15/16/17** — auto-detecting device and Android version at flash time. Just flash and reboot, no choices needed.
+Build the Linux 6.6.162 "Clyra-Flip" kernel on your own Linux machine and package it into a single universal flashable AnyKernel3 zip that works on **both ruan and dizi, across Android 14/15/16/17** — auto-detecting device and Android version at flash time. Just flash and reboot, no choices needed.
 
 ---
 
@@ -8,7 +8,7 @@ Build the Linux 6.6.144 "Clyra-Flip" kernel on your own Linux machine and packag
 
 | Item | Value |
 |------|-------|
-| Kernel | Linux 6.6.144 |
+| Kernel | Linux 6.6.162 |
 | Kernel name | Clyra-Flip |
 | Devices | ruan (Redmi Note 12 5G), dizi (Redmi Note 12 WiFi) |
 | Android versions | 14 (GKI 2.0), 15 (GKI 3.0), 16 (GKI 3.1), 17 (GKI 4.0) |
@@ -146,7 +146,7 @@ Run the packager from the repo root (it looks for `out-*` directories in the cur
 This creates:
 
 ```
-clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip
+clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip
 ```
 
 The zip contains all 8 `Image.<device>.android<NN>` files plus both DTBs.
@@ -183,7 +183,7 @@ done
 # Package universal zip
 ./flashable/package.sh .
 
-# Result: clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip
+# Result: clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip
 ```
 
 ---

@@ -57,7 +57,7 @@ The kernel build produces:
 This copies the kernel `Image` and DTBs into the flashable zip structure and
 creates:
 ```
-clyra-flip-kernel-ruan-6.6.144-Clyra-Flip.zip
+clyra-flip-kernel-ruan-6.6.162-Clyra-Flip.zip
 ```
 
 You must provide the built kernel `Image` and DTBs — the package script copies

@@ -271,9 +271,9 @@ jobs:
         if: (github.event.inputs.upload_release == 'true' || github.event_name == 'push') && success()
         run: |
           printf 'Clyra-Flip Kernel v1.0.0\n\n' > /tmp/release-notes.md
-          printf 'Clyra-Flip Kernel 6.6.144-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).\n\n' >> /tmp/release-notes.md
+          printf 'Clyra-Flip Kernel 6.6.162-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).\n\n' >> /tmp/release-notes.md
           printf 'Built with GitHub Actions\n' >> /tmp/release-notes.md
-          printf 'Kernel: Linux 6.6.144-Clyra-Flip\n' >> /tmp/release-notes.md
+          printf 'Kernel: Linux 6.6.162-Clyra-Flip\n' >> /tmp/release-notes.md
           printf 'Devices: ruan, dizi\n' >> /tmp/release-notes.md
           printf 'Android: 14, 15, 16, 17\n' >> /tmp/release-notes.md
           printf 'Compiler: AOSP clang-r416183b (or NDK fallback)\n' >> /tmp/release-notes.md

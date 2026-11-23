@@ -33,7 +33,7 @@ FLASHABLE="$K/flashable"
 ZIP_DIR="$K/flashable-zip"
 
 # Detect kernel release from first available build dir
-REL="6.6.144-Clyra-Flip"
+REL="6.6.162-Clyra-Flip"
 for d in "$BUILD_ROOT"/out-ruan66* "$BUILD_ROOT"/out-dizi66*; do
   if [ -f "$d/include/config/kernel.release" ]; then
     REL=$(cat "$d/include/config/kernel.release")

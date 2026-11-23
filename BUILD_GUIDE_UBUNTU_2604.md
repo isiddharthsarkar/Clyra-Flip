@@ -1,6 +1,6 @@
 # Clyra-Flip Kernel Build Guide — Ubuntu 26.04.1
 
-Build the Linux 6.6.144 "Clyra-Flip" kernel and create a universal flashable
+Build the Linux 6.6.162 "Clyra-Flip" kernel and create a universal flashable
 AnyKernel3 zip on Ubuntu 26.04.1. The resulting zip auto-detects device
 (ruan/dizi) AND Android version (14/15/16/17) at flash time — just flash and
 reboot, no choices needed.
@@ -11,14 +11,14 @@ reboot, no choices needed.
 
 | Item | Value |
 |------|-------|
-| Kernel | Linux 6.6.144 |
+| Kernel | Linux 6.6.162 |
 | Kernel name | Clyra-Flip |
 | Devices | ruan (Redmi Note 12 5G), dizi (Redmi Note 12 WiFi) |
 | Android versions | 14 (GKI 2.0), 15 (GKI 3.0), 16 (GKI 3.1), 17 (GKI 4.0) |
 | Build combinations | 8 (2 devices × 4 Android versions) |
 | Compiler | AOSP clang-r416183b |
 | Cross toolchain | aarch64-linux-gnu-, arm-linux-gnueabi- |
-| Output | Universal flashable zip: `clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip` |
+| Output | Universal flashable zip: `clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip` |
 
 ---
 
@@ -183,7 +183,7 @@ ls -la out-ruan66.android16/arch/arm64/boot/dts/vendor/qcom/*.dtb
 ls -la out-dizi66.android16/arch/arm64/boot/dts/vendor/qcom/*.dtb
 ```
 
-Expected kernel release: `6.6.144-Clyra-Flip`
+Expected kernel release: `6.6.162-Clyra-Flip`
 
 ```sh
 cat out-ruan66.android16/include/config/kernel.release
@@ -204,7 +204,7 @@ cd ~/Clyra-Flip
 This creates:
 
 ```
-clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip
+clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip
 ```
 
 The zip contains:
@@ -217,7 +217,7 @@ The zip contains:
 Verify the zip contents:
 
 ```sh
-unzip -l clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip | head -30
+unzip -l clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip | head -30
 ```
 
 ---
@@ -233,14 +233,14 @@ unzip -l clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip | head -30
 
 ```sh
 # Copy the zip to your phone's internal storage
-adb push clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip /sdcard/
+adb push clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip /sdcard/
 
 # Reboot to recovery
 adb reboot recovery
 ```
 
 Then in TWRP/OrangeFox recovery:
-1. **Install** → select `clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip`
+1. **Install** → select `clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip`
 2. Swipe to flash
 3. **Reboot** to system
 
@@ -288,7 +288,7 @@ done
 ./flashable/package.sh .
 
 # Flash
-adb push clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip /sdcard/
+adb push clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip /sdcard/
 adb reboot recovery
 ```
 
@@ -332,7 +332,7 @@ and all Android versions automatically.
 | `~/Clyra-Flip/` | Kernel source tree |
 | `out-ruan66.android14/..17/` | ruan build outputs |
 | `out-dizi66.android14/..17/` | dizi build outputs |
-| `clyra-flip-kernel-universal-6.6.144-Clyra-Flip.zip` | Universal flashable zip |
+| `clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip` | Universal flashable zip |
 
 ---
 
