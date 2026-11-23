@@ -204,14 +204,6 @@ config QCOM_PDC
 	help
 	  Power Debug Controller for Qualcomm power domain debugging.
 
-config QCOM_RPMH
-	bool "QCOM Runtime Power Management Hierarchy"
-	depends on ARCH_QCOM_CAF
-	default y
-	select QCOM_RPMT
-	help
-	  RPMH driver for Qualcomm runtime power management.
-
 config QCOM_RPMH_ADSP
 	bool "QCOM RPMH ADSP"
 	depends on QCOM_RPMH
@@ -221,7 +213,7 @@ config QCOM_RPMH_ADSP
 
 config QCOM_RPMT
 	bool "QCOM RPM Timer"
-	depends on ARCH_QCOM_CAF
+	depends on QCOM_RPMH
 	default y
 	help
 	  RPM Timer driver for Qualcomm SoCs.
@@ -235,14 +227,14 @@ config QCOM_RPMH_VS
 
 config QCOM_CPR
 	bool "QCOM Critical Path Regression"
-	depends on ARCH_QCOM_CAF
+	depends on QCOM_RPMH
 	default y
 	help
 	  CPR driver for critical path regression monitoring.
 
 config QCOM_LLCC
 	bool "QCOM Last Level Cache Coherency"
-	depends on ARCH_QCOM_CAF
+	depends on QCOM_RPMH
 	default y
 	help
 	  LLCC driver for last level cache coherency management.
@@ -256,7 +248,7 @@ config QCOM_POWER
 
 config QCOM_WATCHDOG
 	bool "QCOM Watchdog timer"
-	depends on ARCH_QCOM_CAF
+	depends on QCOM_POWER
 	default y
 	help
 	  Qualcomm watchdog timer driver.
@@ -378,20 +370,6 @@ endmenu # CAF Connectivity
 
 menu "CAF Shared Memory and IPC"
 
-config QCOM_SMEM
-	bool "QCOM Shared Memory (SMEM)"
-	depends on ARCH_QCOM_CAF
-	default y
-	help
-	  QCOM Shared Memory driver for inter-processor communication.
-
-config QCOM_SMEM_STATE
-	bool "QCOM SMEM state"
-	depends on QCOM_SMEM
-	default y
-	help
-	  SMEM state tracking.
-
 config QCOM_SMEM_SDP
 	bool "QCOM SMEM SDP"
 	depends on QCOM_SMEM
@@ -399,26 +377,12 @@ config QCOM_SMEM_SDP
 	help
 	  SMEM Secure Data Path.
 
-config QCOM_SMD_RPM
-	bool "QCOM SMD RPM doorbell"
-	depends on QCOM_SMEM
-	default y
-	help
-	  Shared Memory Doorbell for RPM (Resource Power Manager).
-
 config QCOM_RMTFS_MEM
 	bool "QCOM Remote Filesystem memory"
 	depends on QCOM_SMEM
 	default y
 	help
 	  Remote filesystem memory driver.
-
-config QCOM_GENI_SE
-	bool "QCOM GENI SE (Security Engine)"
-	depends on ARCH_QCOM_CAF
-	default y
-	help
-	  GENI Security Engine driver.
 
 config QCOM_GENI_SMEM_IPC
 	bool "QCOM GENI SMEM IPC"

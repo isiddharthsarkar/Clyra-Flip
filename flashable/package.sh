@@ -45,6 +45,8 @@ done
 DEVICES="ruan dizi"
 ANDROID_VERS="android14 android15 android16 android17"
 
+MISSING=0
+
 echo "=== Clyra-Flip AnyKernel3 Universal Flashable Zip Packager ==="
 echo "Build root:  $BUILD_ROOT"
 echo "Kernel rel:  $REL"
@@ -80,7 +82,8 @@ for DEVICE in $DEVICES; do
     done
 
     if [ -z "$OUT_DIR" ]; then
-      echo "WARNING: no build dir found for $DEVICE $ANDROID_VER, skipping"
+      echo "ERROR: no build dir found for $DEVICE $ANDROID_VER"
+      MISSING=1
       continue
     fi
 
@@ -110,17 +113,27 @@ for DEVICE in $DEVICES; do
       for dtb in "$DTB_DIR"/*.dtb; do
         if [ -f "$dtb" ]; then
           dtb_name=$(basename "$dtb")
-          # Only copy if not already present (DTB may be same across Android versions)
-          if [ ! -f "$ZIP_DIR/dtb/$dtb_name" ]; then
-            cp "$dtb" "$ZIP_DIR/dtb/$dtb_name"
-            DTB_COUNT=$((DTB_COUNT + 1))
-            echo "DTB copied:      $dtb_name"
-          fi
+          # Include Android version in filename to avoid overwriting
+          # different DTBs from different Android versions
+          cp "$dtb" "$ZIP_DIR/dtb/${dtb_name%.dtb}.${ANDROID_VER}.dtb"
+          DTB_COUNT=$((DTB_COUNT + 1))
+          echo "DTB copied:      ${dtb_name%.dtb}.${ANDROID_VER}.dtb"
         fi
       done
     fi
   done
 done
+
+if [ "$MISSING" -eq 1 ]; then
+  echo ""
+  echo "ERROR: Some build directories are missing. Build all combinations first:"
+  echo "  for dev in ruan dizi; do"
+  echo "    for ver in android14 android15 android16 android17; do"
+  echo "      ./build.sh <clang-dir> \$dev \$ver"
+  echo "    done"
+  echo "  done"
+  exit 1
+fi
 
 if [ "$TOTAL_IMAGES" -eq 0 ]; then
   echo ""

@@ -100,10 +100,37 @@ EXPORT_SYMBOL_GPL(ksu_grant_root);
 /* Revoke root from a task (restore original credentials) */
 int ksu_revoke_root(struct task_struct *task)
 {
+	struct cred *new;
+	kuid_t root_uid = KUIDT_INIT(0);
+
 	if (!task || !ksu_gs.enabled)
 		return -EINVAL;
 
-	/* Revert to original credentials - this is best-effort */
+	/*
+	 * Revoke root by resetting credentials to the task's original
+	 * real uid. Since we don't store the original credentials, we
+	 * reset to the current real uid which effectively removes
+	 * root (euid == 0) privileges.
+	 */
+	new = prepare_creds();
+	if (!new)
+		return -ENOMEM;
+
+	new->uid = current_uid();
+	new->gid = current_gid();
+	new->suid = new->uid;
+	new->sgid = new->gid;
+	new->euid = new->uid;
+	new->egid = new->gid;
+	new->fsuid = new->uid;
+	new->fsgid = new->gid;
+	new->cap_inheritable = cap_intersect(new->cap_inheritable, cap_intersect(current_cap(), current_cap()));
+	new->cap_permitted = cap_intersect(new->cap_permitted, current_cap());
+	new->cap_effective = cap_intersect(new->cap_effective, current_cap());
+	new->cap_bset = cap_intersect(new->cap_bset, current_cap_bset());
+
+	commit_creds(new);
+
 	if (ksu_gs.log_ops)
 		pr_info("revoked root from pid %d\n", task->pid);
 
@@ -191,15 +218,19 @@ static int ksu_proc_add(pid_t pid, enum ksu_proc_state state)
 	if (ksu_gs.proc_count >= KSU_MAX_PROCS)
 		return -ENOMEM;
 
+	mutex_lock(&ksu_gs.lock);
 	entry = ksu_proc_find(pid);
 	if (entry) {
 		entry->state = state;
+		mutex_unlock(&ksu_gs.lock);
 		return 0;
 	}
 
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	if (!entry)
+	if (!entry) {
+		mutex_unlock(&ksu_gs.lock);
 		return -ENOMEM;
+	}
 
 	entry->pid = pid;
 	entry->state = state;
@@ -207,7 +238,6 @@ static int ksu_proc_add(pid_t pid, enum ksu_proc_state state)
 	entry->gid = current_gid();
 	INIT_LIST_HEAD(&entry->list);
 
-	mutex_lock(&ksu_gs.lock);
 	list_add_tail(&entry->list, &ksu_gs.procs);
 	ksu_gs.proc_count++;
 	mutex_unlock(&ksu_gs.lock);
@@ -387,6 +417,9 @@ unregister_chrdev:
 
 void __exit ksu_exit(void)
 {
+	/* Unregister susfs filesystem */
+	ksu_susfs_unregister();
+
 	/* Remove proc entries */
 	if (ksu_proc_status)
 		proc_remove(ksu_proc_status);
