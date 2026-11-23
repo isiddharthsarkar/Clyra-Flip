@@ -13,7 +13,8 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <drm/drmP.h>
+#include <drm/drm_device.h>
+#include <drm/drm_drv.h>
 #include <drm/drm_crtc.h>
 
 MODULE_AUTHOR("Clyra-Flip Contributors");

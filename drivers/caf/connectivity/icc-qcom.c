@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM icc-qcom driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init icc-qcom_init(void)
+static int __init icc_qcom_init(void)
 {
 	pr_info("CAF QCOM icc-qcom initializing\n");
 	return 0;
 }
 
-static void __exit icc-qcom_exit(void)
+static void __exit icc_qcom_exit(void)
 {
 	pr_info("CAF QCOM icc-qcom exiting\n");
 }
 
-module_init(icc-qcom_init);
-module_exit(icc-qcom_exit);
+module_init(icc_qcom_init);
+module_exit(icc_qcom_exit);

@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM usb-hsic-phy driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init usb-hsic-phy_init(void)
+static int __init usb_hsic_phy_init(void)
 {
 	pr_info("CAF QCOM usb-hsic-phy initializing\n");
 	return 0;
 }
 
-static void __exit usb-hsic-phy_exit(void)
+static void __exit usb_hsic_phy_exit(void)
 {
 	pr_info("CAF QCOM usb-hsic-phy exiting\n");
 }
 
-module_init(usb-hsic-phy_init);
-module_exit(usb-hsic-phy_exit);
+module_init(usb_hsic_phy_init);
+module_exit(usb_hsic_phy_exit);

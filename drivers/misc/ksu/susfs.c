@@ -130,12 +130,21 @@ static ssize_t susfs_control_write(struct file *file, const char __user *buf,
 static ssize_t susfs_status_read(struct file *file, char __user *buf,
 				 size_t count, loff_t *ppos)
 {
+	struct inode *inode = file_inode(file);
+	const char *name = inode->i_private;
 	char status[256];
 	int len;
 
-	len = snprintf(status, sizeof(status),
-		       "enabled=%d\nhide_root=%d\nversion=%s\n",
-		       ksu_gs.enabled, ksu_gs.hide_root, KSU_VERSION);
+	if (name && strcmp(name, SUSFS_FILE_IS_ROOT) == 0) {
+		int is_root = ksu_check_root(current);
+		len = snprintf(status, sizeof(status), "%d\n", is_root);
+	} else if (name && strcmp(name, SUSFS_FILE_VERSION) == 0) {
+		len = snprintf(status, sizeof(status), "%s\n", KSU_VERSION);
+	} else {
+		len = snprintf(status, sizeof(status),
+			       "enabled=%d\nhide_root=%d\nversion=%s\n",
+			       ksu_gs.enabled, ksu_gs.hide_root, KSU_VERSION);
+	}
 
 	if (*ppos >= len)
 		return 0;
@@ -196,6 +205,8 @@ static int susfs_create_files(struct super_block *sb,
 		inode->i_gid = GLOBAL_ROOT_GID;
 		inode->i_atime = inode->i_mtime = inode_set_ctime_current(inode);
 
+		inode->i_private = (void *)files[i];
+
 		if (strcmp(files[i], SUSFS_FILE_IS_ROOT) == 0 ||
 		    strcmp(files[i], SUSFS_FILE_VERSION) == 0) {
 			/* Read-only status files */
@@ -205,7 +216,6 @@ static int susfs_create_files(struct super_block *sb,
 			/* Write-only control files */
 			inode->i_mode = S_IFREG | 0222;
 			inode->i_fop = &susfs_control_fops;
-			inode->i_private = (void *)files[i];
 		}
 
 		d_add(dentry, inode);

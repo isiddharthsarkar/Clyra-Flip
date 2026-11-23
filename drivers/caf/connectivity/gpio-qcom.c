@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM gpio-qcom driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init gpio-qcom_init(void)
+static int __init gpio_qcom_init(void)
 {
 	pr_info("CAF QCOM gpio-qcom initializing\n");
 	return 0;
 }
 
-static void __exit gpio-qcom_exit(void)
+static void __exit gpio_qcom_exit(void)
 {
 	pr_info("CAF QCOM gpio-qcom exiting\n");
 }
 
-module_init(gpio-qcom_init);
-module_exit(gpio-qcom_exit);
+module_init(gpio_qcom_init);
+module_exit(gpio_qcom_exit);

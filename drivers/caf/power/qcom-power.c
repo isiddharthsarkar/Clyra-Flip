@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM qcom-power driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init qcom-power_init(void)
+static int __init qcom_power_init(void)
 {
 	pr_info("CAF QCOM qcom-power initializing\n");
 	return 0;
 }
 
-static void __exit qcom-power_exit(void)
+static void __exit qcom_power_exit(void)
 {
 	pr_info("CAF QCOM qcom-power exiting\n");
 }
 
-module_init(qcom-power_init);
-module_exit(qcom-power_exit);
+module_init(qcom_power_init);
+module_exit(qcom_power_exit);

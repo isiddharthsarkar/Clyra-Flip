@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM spmi-wrapper driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init spmi-wrapper_init(void)
+static int __init spmi_wrapper_init(void)
 {
 	pr_info("CAF QCOM spmi-wrapper initializing\n");
 	return 0;
 }
 
-static void __exit spmi-wrapper_exit(void)
+static void __exit spmi_wrapper_exit(void)
 {
 	pr_info("CAF QCOM spmi-wrapper exiting\n");
 }
 
-module_init(spmi-wrapper_init);
-module_exit(spmi-wrapper_exit);
+module_init(spmi_wrapper_init);
+module_exit(spmi_wrapper_exit);

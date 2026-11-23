@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM spmi-pmic driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init spmi-pmic_init(void)
+static int __init spmi_pmic_init(void)
 {
 	pr_info("CAF QCOM spmi-pmic initializing\n");
 	return 0;
 }
 
-static void __exit spmi-pmic_exit(void)
+static void __exit spmi_pmic_exit(void)
 {
 	pr_info("CAF QCOM spmi-pmic exiting\n");
 }
 
-module_init(spmi-pmic_init);
-module_exit(spmi-pmic_exit);
+module_init(spmi_pmic_init);
+module_exit(spmi_pmic_exit);

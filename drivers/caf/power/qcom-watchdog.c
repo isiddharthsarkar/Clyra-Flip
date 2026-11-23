@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM qcom-watchdog driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init qcom-watchdog_init(void)
+static int __init qcom_watchdog_init(void)
 {
 	pr_info("CAF QCOM qcom-watchdog initializing\n");
 	return 0;
 }
 
-static void __exit qcom-watchdog_exit(void)
+static void __exit qcom_watchdog_exit(void)
 {
 	pr_info("CAF QCOM qcom-watchdog exiting\n");
 }
 
-module_init(qcom-watchdog_init);
-module_exit(qcom-watchdog_exit);
+module_init(qcom_watchdog_init);
+module_exit(qcom_watchdog_exit);

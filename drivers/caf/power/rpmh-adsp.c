@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM rpmh-adsp driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init rpmh-adsp_init(void)
+static int __init rpmh_adsp_init(void)
 {
 	pr_info("CAF QCOM rpmh-adsp initializing\n");
 	return 0;
 }
 
-static void __exit rpmh-adsp_exit(void)
+static void __exit rpmh_adsp_exit(void)
 {
 	pr_info("CAF QCOM rpmh-adsp exiting\n");
 }
 
-module_init(rpmh-adsp_init);
-module_exit(rpmh-adsp_exit);
+module_init(rpmh_adsp_init);
+module_exit(rpmh_adsp_exit);

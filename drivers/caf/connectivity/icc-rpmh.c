@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM icc-rpmh driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init icc-rpmh_init(void)
+static int __init icc_rpmh_init(void)
 {
 	pr_info("CAF QCOM icc-rpmh initializing\n");
 	return 0;
 }
 
-static void __exit icc-rpmh_exit(void)
+static void __exit icc_rpmh_exit(void)
 {
 	pr_info("CAF QCOM icc-rpmh exiting\n");
 }
 
-module_init(icc-rpmh_init);
-module_exit(icc-rpmh_exit);
+module_init(icc_rpmh_init);
+module_exit(icc_rpmh_exit);

@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM pinctrl-qcom driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init pinctrl-qcom_init(void)
+static int __init pinctrl_qcom_init(void)
 {
 	pr_info("CAF QCOM pinctrl-qcom initializing\n");
 	return 0;
 }
 
-static void __exit pinctrl-qcom_exit(void)
+static void __exit pinctrl_qcom_exit(void)
 {
 	pr_info("CAF QCOM pinctrl-qcom exiting\n");
 }
 
-module_init(pinctrl-qcom_init);
-module_exit(pinctrl-qcom_exit);
+module_init(pinctrl_qcom_init);
+module_exit(pinctrl_qcom_exit);

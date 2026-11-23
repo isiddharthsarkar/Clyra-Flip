@@ -80,7 +80,8 @@ slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
 [ "$slot" ] || slot=$(sed -n 's/^androidboot\.slot_suffix = "\(.*\)"$/\1/p' /proc/bootconfig 2>/dev/null);
 [ "$slot" ] || slot=$(grep -o 'androidboot.slot_suffix=[^ ]*' /proc/cmdline | cut -d= -f2);
 case $slot in
-  _a|_b) ;;\
+  _a|_b) ;;
+  a|b)   slot="_$slot" ;;
   *)     abort "Unable to determine the active slot. Aborting...";;
 esac;
 for byname in /dev/block/bootdevice/by-name /dev/block/by-name; do

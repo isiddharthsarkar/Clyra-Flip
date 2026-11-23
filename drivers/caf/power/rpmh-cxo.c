@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM rpmh-cxo driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init rpmh-cxo_init(void)
+static int __init rpmh_cxo_init(void)
 {
 	pr_info("CAF QCOM rpmh-cxo initializing\n");
 	return 0;
 }
 
-static void __exit rpmh-cxo_exit(void)
+static void __exit rpmh_cxo_exit(void)
 {
 	pr_info("CAF QCOM rpmh-cxo exiting\n");
 }
 
-module_init(rpmh-cxo_init);
-module_exit(rpmh-cxo_exit);
+module_init(rpmh_cxo_init);
+module_exit(rpmh_cxo_exit);

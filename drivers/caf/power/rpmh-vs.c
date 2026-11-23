@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM rpmh-vs driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init rpmh-vs_init(void)
+static int __init rpmh_vs_init(void)
 {
 	pr_info("CAF QCOM rpmh-vs initializing\n");
 	return 0;
 }
 
-static void __exit rpmh-vs_exit(void)
+static void __exit rpmh_vs_exit(void)
 {
 	pr_info("CAF QCOM rpmh-vs exiting\n");
 }
 
-module_init(rpmh-vs_init);
-module_exit(rpmh-vs_exit);
+module_init(rpmh_vs_init);
+module_exit(rpmh_vs_exit);

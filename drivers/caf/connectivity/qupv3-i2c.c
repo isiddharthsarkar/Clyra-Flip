@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM qupv3-i2c driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init qupv3-i2c_init(void)
+static int __init qupv3_i2c_init(void)
 {
 	pr_info("CAF QCOM qupv3-i2c initializing\n");
 	return 0;
 }
 
-static void __exit qupv3-i2c_exit(void)
+static void __exit qupv3_i2c_exit(void)
 {
 	pr_info("CAF QCOM qupv3-i2c exiting\n");
 }
 
-module_init(qupv3-i2c_init);
-module_exit(qupv3-i2c_exit);
+module_init(qupv3_i2c_init);
+module_exit(qupv3_i2c_exit);

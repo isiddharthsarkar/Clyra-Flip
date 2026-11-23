@@ -19,16 +19,16 @@ MODULE_DESCRIPTION("CAF QCOM omni-pocr driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0.0");
 
-static int __init omni-pocr_init(void)
+static int __init omni_pocr_init(void)
 {
 	pr_info("CAF QCOM omni-pocr initializing\n");
 	return 0;
 }
 
-static void __exit omni-pocr_exit(void)
+static void __exit omni_pocr_exit(void)
 {
 	pr_info("CAF QCOM omni-pocr exiting\n");
 }
 
-module_init(omni-pocr_init);
-module_exit(omni-pocr_exit);
+module_init(omni_pocr_init);
+module_exit(omni_pocr_exit);
