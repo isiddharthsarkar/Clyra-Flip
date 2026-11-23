@@ -13,8 +13,6 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/soundwire/sdw.h>
-#include <sound/soc.h>
 
 MODULE_AUTHOR("Clyra-Flip Contributors");
 MODULE_DESCRIPTION("CAF Qualcomm SoC Audio core driver");

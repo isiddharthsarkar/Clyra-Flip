@@ -13,7 +13,6 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <media/v4l2-device.h>
 
 MODULE_AUTHOR("Clyra-Flip Contributors");
 MODULE_DESCRIPTION("CAF QCOM Camera Subsystem core driver");
