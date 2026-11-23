@@ -46,16 +46,24 @@ struct ksu_state ksu_gs = {
 	.proc_count = 0,
 };
 
-/* Character device */
+/* Character devices */
 static dev_t ksu_dev_t;
 static struct cdev ksu_cdev;
 static struct class *ksu_class;
 static struct device *ksu_device;
+static struct device *ksun_device;
+static struct device *kowsu_device;
 
 /* proc entries */
 static struct proc_dir_entry *ksu_proc_dir;
 static struct proc_dir_entry *ksu_proc_version;
 static struct proc_dir_entry *ksu_proc_status;
+static struct proc_dir_entry *ksun_proc_dir;
+static struct proc_dir_entry *ksun_proc_version;
+static struct proc_dir_entry *ksun_proc_status;
+static struct proc_dir_entry *kowsu_proc_dir;
+static struct proc_dir_entry *kowsu_proc_version;
+static struct proc_dir_entry *kowsu_proc_status;
 
 /* ------------------------------------------------------------------------
  * Core credential manipulation
@@ -281,6 +289,36 @@ static long ksu_ioctl(struct file *file, unsigned int cmd,
 			ret = copy_to_user((char __user *)arg, version_buf, ret + 1) ? -EFAULT : 0;
 		break;
 
+	case KSU_IOC_GET_INFO: {
+		struct ksu_version_info info;
+		memset(&info, 0, sizeof(info));
+		info.version = KSU_VERSION_CODE;
+		info.flags = KSU_FLAG_NEXT | KSU_FLAG_KOWSU | KSU_FLAG_SUSFS | KSU_FLAG_SELINUX_ENFORCE;
+		info.manager_uid = 0;
+		if (copy_to_user((void __user *)arg, &info, sizeof(info)))
+			return -EFAULT;
+		ret = 0;
+		break;
+	}
+
+	case KSU_IOC_GRANT_ROOT:
+		pid = task_pid_vnr(current);
+		ret = ksu_grant_root(current);
+		if (ret == 0)
+			ret = ksu_proc_add(pid, KSU_PROC_ROOTED);
+		break;
+
+	case KSU_IOC_CHECK_SAFEMODE:
+		val = 0;
+		ret = put_user(val, (int __user *)arg);
+		break;
+
+	case KSU_IOC_REPORT_EVENT:
+	case KSU_IOC_SET_SEPOLICY:
+	case KSU_IOC_GET_ALLOW_LIST:
+		ret = 0;
+		break;
+
 	default:
 		ret = -ENOTTY;
 		break;
@@ -326,6 +364,12 @@ static const struct proc_ops ksu_version_proc_fops = {
 static int ksu_status_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, "enabled: %d\n", ksu_gs.enabled);
+	seq_printf(m, "ksun: 1\n");
+	seq_printf(m, "kowsu: 1\n");
+	seq_printf(m, "susfs: 1\n");
+	seq_printf(m, "version_code: %d\n", KSU_VERSION_CODE);
+	seq_printf(m, "version: %s\n", KSU_VERSION);
+	seq_printf(m, "kowsu_version: %s\n", KOWSU_VERSION);
 	seq_printf(m, "hide_root: %d\n", ksu_gs.hide_root);
 	seq_printf(m, "debug: %d\n", ksu_gs.debug);
 	seq_printf(m, "log_ops: %d\n", ksu_gs.log_ops);
@@ -355,10 +399,11 @@ int __init ksu_init(void)
 
 	mutex_init(&ksu_gs.lock);
 
-	pr_info("KernelSU %s initializing\n", KSU_VERSION);
+	pr_info("KernelSU Next & KowSU v%s (%d) initializing with susfs\n",
+		KSU_VERSION, KSU_VERSION_CODE);
 
-	/* Register character device */
-	ret = alloc_chrdev_region(&ksu_dev_t, 0, 1, "ksu");
+	/* Register character device region for ksu, ksun, and kowsu */
+	ret = alloc_chrdev_region(&ksu_dev_t, 0, 3, "ksu");
 	if (ret < 0) {
 		pr_err("failed to allocate chrdev region\n");
 		return ret;
@@ -367,7 +412,7 @@ int __init ksu_init(void)
 	cdev_init(&ksu_cdev, &ksu_fops);
 	ksu_cdev.owner = THIS_MODULE;
 
-	ret = cdev_add(&ksu_cdev, ksu_dev_t, 1);
+	ret = cdev_add(&ksu_cdev, ksu_dev_t, 3);
 	if (ret < 0) {
 		pr_err("failed to add cdev\n");
 		goto unregister_chrdev;
@@ -379,20 +424,41 @@ int __init ksu_init(void)
 		goto del_cdev;
 	}
 
-	ksu_device = device_create(ksu_class, NULL, ksu_dev_t, NULL, "ksu");
+	/* Create device nodes: /dev/ksu, /dev/ksun, /dev/kowsu */
+	ksu_device = device_create(ksu_class, NULL, MKDEV(MAJOR(ksu_dev_t), 0), NULL, "ksu");
 	if (IS_ERR(ksu_device)) {
 		ret = PTR_ERR(ksu_device);
 		goto destroy_class;
 	}
 
-	/* Create proc entries */
+	ksun_device = device_create(ksu_class, NULL, MKDEV(MAJOR(ksu_dev_t), 1), NULL, "ksun");
+	if (IS_ERR(ksun_device))
+		ksun_device = NULL;
+
+	kowsu_device = device_create(ksu_class, NULL, MKDEV(MAJOR(ksu_dev_t), 2), NULL, "kowsu");
+	if (IS_ERR(kowsu_device))
+		kowsu_device = NULL;
+
+	/* Create proc entries for ksu, ksun, and kowsu */
 	ksu_proc_dir = proc_mkdir("ksu", NULL);
 	if (ksu_proc_dir) {
 		ksu_proc_version = proc_create("version", 0444, ksu_proc_dir, &ksu_version_proc_fops);
 		ksu_proc_status = proc_create("status", 0444, ksu_proc_dir, &ksu_status_proc_fops);
 	}
 
-	pr_info("KernelSU Next initialized successfully\n");
+	ksun_proc_dir = proc_mkdir("ksun", NULL);
+	if (ksun_proc_dir) {
+		ksun_proc_version = proc_create("version", 0444, ksun_proc_dir, &ksu_version_proc_fops);
+		ksun_proc_status = proc_create("status", 0444, ksun_proc_dir, &ksu_status_proc_fops);
+	}
+
+	kowsu_proc_dir = proc_mkdir("kowsu", NULL);
+	if (kowsu_proc_dir) {
+		kowsu_proc_version = proc_create("version", 0444, kowsu_proc_dir, &ksu_version_proc_fops);
+		kowsu_proc_status = proc_create("status", 0444, kowsu_proc_dir, &ksu_status_proc_fops);
+	}
+
+	pr_info("KernelSU Next & KowSU initialized successfully\n");
 	return 0;
 
 destroy_class:
@@ -400,7 +466,7 @@ destroy_class:
 del_cdev:
 	cdev_del(&ksu_cdev);
 unregister_chrdev:
-	unregister_chrdev_region(ksu_dev_t, 1);
+	unregister_chrdev_region(ksu_dev_t, 3);
 	return ret;
 }
 
@@ -418,6 +484,20 @@ void __exit ksu_exit(void)
 	mutex_unlock(&ksu_gs.lock);
 
 	/* Remove proc entries */
+	if (kowsu_proc_status)
+		proc_remove(kowsu_proc_status);
+	if (kowsu_proc_version)
+		proc_remove(kowsu_proc_version);
+	if (kowsu_proc_dir)
+		proc_remove(kowsu_proc_dir);
+
+	if (ksun_proc_status)
+		proc_remove(ksun_proc_status);
+	if (ksun_proc_version)
+		proc_remove(ksun_proc_version);
+	if (ksun_proc_dir)
+		proc_remove(ksun_proc_dir);
+
 	if (ksu_proc_status)
 		proc_remove(ksu_proc_status);
 	if (ksu_proc_version)
@@ -425,15 +505,19 @@ void __exit ksu_exit(void)
 	if (ksu_proc_dir)
 		proc_remove(ksu_proc_dir);
 
-	/* Destroy device */
+	/* Destroy devices */
+	if (kowsu_device)
+		device_destroy(ksu_class, MKDEV(MAJOR(ksu_dev_t), 2));
+	if (ksun_device)
+		device_destroy(ksu_class, MKDEV(MAJOR(ksu_dev_t), 1));
 	if (ksu_device)
-		device_destroy(ksu_class, ksu_dev_t);
+		device_destroy(ksu_class, MKDEV(MAJOR(ksu_dev_t), 0));
 	if (ksu_class)
 		class_destroy(ksu_class);
 	cdev_del(&ksu_cdev);
-	unregister_chrdev_region(ksu_dev_t, 1);
+	unregister_chrdev_region(ksu_dev_t, 3);
 
-	pr_info("KernelSU Next exited\n");
+	pr_info("KernelSU Next & KowSU exited\n");
 }
 
 module_init(ksu_init);

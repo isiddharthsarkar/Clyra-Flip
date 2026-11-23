@@ -3,33 +3,43 @@
 # KernelSU configuration
 #
 
-menu "KernelSU Next"
+menu "KernelSU Next & KowSU"
 
 config KERNEL_SU
-	bool "KernelSU Next - Kernel-level root solution for Android"
+	bool "KernelSU Next & KowSU - Kernel-level root solution for Android"
 	depends on ARM64
 	select SYSFS
 	select SYSCTL
 	select INET
 	select NET
 	help
-	  KernelSU Next is a kernel-level root solution for Android devices.
-	  It provides root access at the kernel level, allowing Magisk-like
-	  functionality without modifying the boot image ramdisk.
-
-	  KernelSU Next works by hijacking the kernel's credential system to
-	  grant root privileges to specific processes, and provides a
-	  hide feature to conceal root from detection apps.
+	  KernelSU Next & KowSU root solution for Android devices.
+	  It provides root access at the kernel level, supporting both
+	  KernelSU Next Manager and KowSU Manager applications.
 
 	  If unsure, say Y.
 
 if KERNEL_SU
 
+config KSU_NEXT
+	bool "Enable KernelSU Next compatibility"
+	default y
+	depends on KERNEL_SU
+	help
+	  Enable KernelSU Next extensions, interfaces, and /dev/ksun.
+
+config KOWSU
+	bool "Enable KowSU compatibility"
+	default y
+	depends on KERNEL_SU
+	help
+	  Enable KowSU extensions, interfaces, and /dev/kowsu.
+
 config KERNEL_SU_VERSION
-	string "KernelSU Next version"
+	string "KernelSU Next / KowSU version"
 	default "1.0.5-next"
 	help
-	  The version string of KernelSU Next.
+	  The version string of KernelSU Next / KowSU.
 
 config KSU_DEBUG
 	bool "Enable KernelSU debug messages"

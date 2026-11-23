@@ -277,7 +277,7 @@ jobs:
           printf 'Devices: ruan, dizi\n' >> /tmp/release-notes.md
           printf 'Android: 14, 15, 16, 17\n' >> /tmp/release-notes.md
           printf 'Compiler: AOSP clang-r416183b (or NDK fallback)\n' >> /tmp/release-notes.md
-          printf 'Features: KernelSU Next, susfs, CAF/Qualcomm platform support, SELinux Enforcing\n\n' >> /tmp/release-notes.md
+          printf 'Features: KernelSU Next, KowSU, susfs, CAF/Qualcomm platform support, SELinux Enforcing\n\n' >> /tmp/release-notes.md
           printf 'Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version.\n' >> /tmp/release-notes.md
           cat /tmp/release-notes.md
 
