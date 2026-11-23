@@ -225,20 +225,6 @@ config QCOM_RPMH_VS
 	help
 	  RPMH voltage/frequency scaling support.
 
-config QCOM_CPR
-	bool "QCOM Critical Path Regression"
-	depends on QCOM_RPMH
-	default y
-	help
-	  CPR driver for critical path regression monitoring.
-
-config QCOM_LLCC
-	bool "QCOM Last Level Cache Coherency"
-	depends on QCOM_RPMH
-	default y
-	help
-	  LLCC driver for last level cache coherency management.
-
 config QCOM_POWER
 	bool "QCOM Power management"
 	depends on ARCH_QCOM_CAF
@@ -376,13 +362,6 @@ config QCOM_SMEM_SDP
 	default y
 	help
 	  SMEM Secure Data Path.
-
-config QCOM_RMTFS_MEM
-	bool "QCOM Remote Filesystem memory"
-	depends on QCOM_SMEM
-	default y
-	help
-	  Remote filesystem memory driver.
 
 config QCOM_GENI_SMEM_IPC
 	bool "QCOM GENI SMEM IPC"
