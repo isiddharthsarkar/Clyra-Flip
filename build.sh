@@ -74,6 +74,8 @@ echo "Clang dir:   $CLANG_DIR"
 export PATH="$CLANG_DIR/bin:$PATH"
 export CROSS_COMPILE=aarch64-linux-gnu-
 export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+export HOSTCFLAGS=""
+export HOSTLDFLAGS=""
 if [ -d "/usr/include/openssl-3" ]; then
     export HOSTCFLAGS="-I/usr/include/openssl-3"
     export HOSTLDFLAGS="-L/usr/lib/openssl-3 -Wl,-rpath,/usr/lib/openssl-3"
