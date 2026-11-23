@@ -1,28 +1,18 @@
 #!/bin/bash
 # Clyra-Flip AnyKernel3 flashable zip packager for TWRP / OrangeFox
-# UNIVERSAL build: packages ruan + dizi kernels for ALL Android versions
-# (14, 15, 16, 17) into ONE zip. Auto-detects device + Android at flash time.
+# Packages ruan and/or dizi kernels for Android versions (14, 15, 16, 17) into a zip.
+# Auto-detects device + Android version at flash time.
 #
-# Usage: ./package.sh <build-root>
+# Usage: ./package.sh [build-root]
 #
-#   <build-root>   Directory containing out-ruan66 and out-dizi66 subdirs
-#                  (or individual out-<device>66.android<NN> dirs)
+#   [build-root]   Directory containing out-ruan66 and out-dizi66 subdirs
+#                  (or individual out-<device>66.android<NN> dirs, default: .)
 #
-# Creates a universal flashable zip:
-#   clyra-flip-kernel-universal-<release>.zip
+# Creates a flashable zip:
+#   clyra-flip-kernel-<tag>-<release>.zip
 #
-# The zip contains Image.<device>.android<NN> for all 8 combinations
-# (ruan/dizi × android14/15/16/17) plus both DTBs.
+# The zip contains Image.<device>.android<NN> for packaged builds plus DTBs.
 # anykernel.sh auto-detects device and Android version at flash time.
-# No mkbootimg is required on the build machine.
-#
-# Build requirement: all 8 kernel builds must be done first with ./build.sh
-#
-# Example:
-#   ./build.sh <clang-dir> ruan android14   # produces out-ruan66.android14
-#   ./build.sh <clang-dir> ruan android15   # produces out-ruan66.android15
-#   ... (all 8 combos)
-#   ./package.sh .
 
 set -euo pipefail
 
@@ -33,7 +23,7 @@ FLASHABLE="$K/flashable"
 ZIP_DIR="$K/flashable-zip"
 
 # Detect kernel release from first available build dir
-REL="6.6.144-Clyra-Flip"
+REL="6.6.162-Clyra-Flip"
 for d in "$BUILD_ROOT"/out-ruan66* "$BUILD_ROOT"/out-dizi66*; do
   if [ -f "$d/include/config/kernel.release" ]; then
     REL=$(cat "$d/include/config/kernel.release")
@@ -45,9 +35,7 @@ done
 DEVICES="ruan dizi"
 ANDROID_VERS="android14 android15 android16 android17"
 
-MISSING=0
-
-echo "=== Clyra-Flip AnyKernel3 Universal Flashable Zip Packager ==="
+echo "=== Clyra-Flip AnyKernel3 Flashable Zip Packager ==="
 echo "Build root:  $BUILD_ROOT"
 echo "Kernel rel:  $REL"
 echo ""
@@ -68,10 +56,20 @@ DTB_COUNT=0
 
 for DEVICE in $DEVICES; do
   for ANDROID_VER in $ANDROID_VERS; do
+    # Check if pre-named Image already exists in BUILD_ROOT
+    if [ -f "$BUILD_ROOT/Image.${DEVICE}.${ANDROID_VER}" ]; then
+      cp "$BUILD_ROOT/Image.${DEVICE}.${ANDROID_VER}" "$ZIP_DIR/Image.${DEVICE}.${ANDROID_VER}"
+      TOTAL_IMAGES=$((TOTAL_IMAGES + 1))
+      echo "Image copied:  Image.${DEVICE}.${ANDROID_VER}"
+      continue
+    fi
+
     # Find the build output directory for this device+android combo
     OUT_DIR=""
     for candidate in \
       "$BUILD_ROOT/out-${DEVICE}66.${ANDROID_VER}" \
+      "$BUILD_ROOT/downloaded-artifacts/build-${DEVICE}-${ANDROID_VER}/out-${DEVICE}66.${ANDROID_VER}" \
+      "$BUILD_ROOT/artifacts/build-${DEVICE}-${ANDROID_VER}/out-${DEVICE}66.${ANDROID_VER}" \
       "$BUILD_ROOT/out-${DEVICE}66" \
       "$BUILD_ROOT/${DEVICE}_${ANDROID_VER}" \
       "$BUILD_ROOT/out-${DEVICE}-${ANDROID_VER}"; do
@@ -82,8 +80,6 @@ for DEVICE in $DEVICES; do
     done
 
     if [ -z "$OUT_DIR" ]; then
-      echo "ERROR: no build dir found for $DEVICE $ANDROID_VER"
-      MISSING=1
       continue
     fi
 
@@ -97,7 +93,6 @@ for DEVICE in $DEVICES; do
     done
 
     if [ -z "$KERNEL_IMG" ] || [ ! -f "$KERNEL_IMG" ]; then
-      echo "WARNING: kernel Image not found for $DEVICE $ANDROID_VER in $OUT_DIR, skipping"
       continue
     fi
 
@@ -113,36 +108,24 @@ for DEVICE in $DEVICES; do
       for dtb in "$DTB_DIR"/*.dtb; do
         if [ -f "$dtb" ]; then
           dtb_name=$(basename "$dtb")
-          # Include Android version in filename to avoid overwriting
-          # different DTBs from different Android versions
+          # Save both version-specific and generic DTB names
           cp "$dtb" "$ZIP_DIR/dtb/${dtb_name%.dtb}.${ANDROID_VER}.dtb"
+          if [ ! -f "$ZIP_DIR/dtb/${DEVICE}.dtb" ]; then
+            cp "$dtb" "$ZIP_DIR/dtb/${DEVICE}.dtb"
+          fi
           DTB_COUNT=$((DTB_COUNT + 1))
-          echo "DTB copied:      ${dtb_name%.dtb}.${ANDROID_VER}.dtb"
+          echo "DTB copied:      $dtb_name"
         fi
       done
     fi
   done
 done
 
-if [ "$MISSING" -eq 1 ]; then
-  echo ""
-  echo "ERROR: Some build directories are missing. Build all combinations first:"
-  echo "  for dev in ruan dizi; do"
-  echo "    for ver in android14 android15 android16 android17; do"
-  echo "      ./build.sh <clang-dir> \$dev \$ver"
-  echo "    done"
-  echo "  done"
-  exit 1
-fi
-
 if [ "$TOTAL_IMAGES" -eq 0 ]; then
   echo ""
-  echo "ERROR: No kernel images found! Build all combinations first:"
-  echo "  for dev in ruan dizi; do"
-  echo "    for ver in android14 android15 android16 android17; do"
-  echo "      ./build.sh <clang-dir> \$dev \$ver"
-  echo "    done"
-  echo "  done"
+  echo "ERROR: No kernel images found in $BUILD_ROOT!"
+  echo "Build kernel first:"
+  echo "  ./build.sh <clang-dir> <device> <android-version>"
   exit 1
 fi
 
@@ -154,8 +137,20 @@ echo "DTBs packaged:   $DTB_COUNT"
 rm -f "$ZIP_DIR/ramdisk/placeholder" "$ZIP_DIR/patch/placeholder" "$ZIP_DIR/modules/system/lib/modules/placeholder"
 rmdir "$ZIP_DIR/ramdisk" "$ZIP_DIR/patch" "$ZIP_DIR/modules/system/lib/modules" 2>/dev/null || true
 
-# Package the zip
-ZIP_NAME="clyra-flip-kernel-universal-$(echo "$REL" | tr '/' '-').zip"
+# Determine package tag
+TAG="universal"
+if [ "$TOTAL_IMAGES" -eq 1 ]; then
+  for dev in $DEVICES; do
+    for ver in $ANDROID_VERS; do
+      if [ -f "$ZIP_DIR/Image.${dev}.${ver}" ]; then
+        TAG="${dev}-${ver}"
+        break 2
+      fi
+    done
+  done
+fi
+
+ZIP_NAME="clyra-flip-kernel-${TAG}-$(echo "$REL" | tr '/' '-').zip"
 ZIP_PATH="$K/$ZIP_NAME"
 
 cd "$ZIP_DIR"
@@ -167,12 +162,12 @@ rm -rf "$ZIP_DIR"
 
 echo ""
 echo "========================================"
-echo "Universal flashable zip created: $ZIP_PATH"
+echo "Flashable zip created: $ZIP_PATH"
 echo "========================================"
 echo ""
 echo "Contents:"
 echo "  Image.<device>.android<NN>  — kernel for each device+Android combo"
-echo "  dtb/*.dtb                   — device tree blobs"
+echo "  dtb/*.dtb                   — device tree blobs (if present)"
 echo "  anykernel.sh                — auto-detecting installer"
 echo ""
 echo "To flash via TWRP / OrangeFox:"
@@ -180,10 +175,3 @@ echo "  1. Copy $ZIP_PATH to your device"
 echo "  2. Reboot to recovery"
 echo "  3. Install -> select the zip -> swipe to flash"
 echo "  4. Reboot to system"
-echo ""
-echo "anykernel.sh auto-detects your device (ruan/dizi)"
-echo "and Android version (14/15/16/17) automatically."
-echo "No choices needed — just flash and reboot."
-echo ""
-echo "The zip uses AnyKernel3 to patch boot.img at flash time."
-echo "No additional tools needed on the build machine."
