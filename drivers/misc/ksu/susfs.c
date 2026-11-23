@@ -32,9 +32,13 @@ MODULE_LICENSE("GPL v2");
  * susfs inode operations
  * ------------------------------------------------------------------------ */
 
+static int susfs_create_files(struct super_block *sb,
+			      struct dentry *root);
+
 static int susfs_fill_super(struct super_block *sb, void *data, int silent)
 {
 	struct inode *root_inode;
+	int ret;
 
 	sb->s_magic = SUSFS_MAGIC;
 	sb->s_maxbytes = MAX_LFS_FILESIZE;
@@ -48,8 +52,7 @@ static int susfs_fill_super(struct super_block *sb, void *data, int silent)
 	root_inode->i_mode = S_IFDIR | 0755;
 	root_inode->i_uid = GLOBAL_ROOT_UID;
 	root_inode->i_gid = GLOBAL_ROOT_GID;
-	root_inode->i_atime = root_inode->i_mtime = root_inode->i_ctime =
-		current_time(root_inode);
+	root_inode->i_atime = root_inode->i_mtime = inode_set_ctime_current(root_inode);
 	root_inode->i_op = &simple_dir_inode_operations;
 	root_inode->i_fop = &simple_dir_operations;
 
@@ -58,6 +61,10 @@ static int susfs_fill_super(struct super_block *sb, void *data, int silent)
 		iput(root_inode);
 		return -ENOMEM;
 	}
+
+	ret = susfs_create_files(sb, sb->s_root);
+	if (ret)
+		return ret;
 
 	return 0;
 }
@@ -87,6 +94,9 @@ static ssize_t susfs_control_write(struct file *file, const char __user *buf,
 	int ret = 0;
 
 	if (count == 0 || count > 64)
+		return -EINVAL;
+
+	if (!name)
 		return -EINVAL;
 
 	if (!ksu_gs.enabled)
@@ -181,11 +191,10 @@ static int susfs_create_files(struct super_block *sb,
 			continue;
 		}
 
-		inode->i_ino = d_inode(dentry) ? d_inode(dentry)->i_ino : (i + 2);
+		inode->i_ino = i + 2;
 		inode->i_uid = GLOBAL_ROOT_UID;
 		inode->i_gid = GLOBAL_ROOT_GID;
-		inode->i_atime = inode->i_mtime = inode->i_ctime =
-			current_time(inode);
+		inode->i_atime = inode->i_mtime = inode_set_ctime_current(inode);
 
 		if (strcmp(files[i], SUSFS_FILE_IS_ROOT) == 0 ||
 		    strcmp(files[i], SUSFS_FILE_VERSION) == 0) {
@@ -233,13 +242,12 @@ EXPORT_SYMBOL_GPL(ksu_susfs_unregister);
 
 static int __init susfs_init(void)
 {
-	/* susfs is registered via ksu_susfs_register() called from ksu.c */
-	return 0;
+	return ksu_susfs_register();
 }
 
 static void __exit susfs_exit(void)
 {
-	/* Nothing to do - unregistration handled by ksu.c */
+	ksu_susfs_unregister();
 }
 
 module_init(susfs_init);

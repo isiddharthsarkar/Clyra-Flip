@@ -188,18 +188,25 @@ static int ksu_proc_add(pid_t pid, enum ksu_proc_state state)
 {
 	struct ksu_proc_entry *entry;
 
-	if (ksu_gs.proc_count >= KSU_MAX_PROCS)
+	mutex_lock(&ksu_gs.lock);
+
+	if (ksu_gs.proc_count >= KSU_MAX_PROCS) {
+		mutex_unlock(&ksu_gs.lock);
 		return -ENOMEM;
+	}
 
 	entry = ksu_proc_find(pid);
 	if (entry) {
 		entry->state = state;
+		mutex_unlock(&ksu_gs.lock);
 		return 0;
 	}
 
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	if (!entry)
+	if (!entry) {
+		mutex_unlock(&ksu_gs.lock);
 		return -ENOMEM;
+	}
 
 	entry->pid = pid;
 	entry->state = state;
@@ -207,7 +214,6 @@ static int ksu_proc_add(pid_t pid, enum ksu_proc_state state)
 	entry->gid = current_gid();
 	INIT_LIST_HEAD(&entry->list);
 
-	mutex_lock(&ksu_gs.lock);
 	list_add_tail(&entry->list, &ksu_gs.procs);
 	ksu_gs.proc_count++;
 	mutex_unlock(&ksu_gs.lock);
@@ -215,7 +221,7 @@ static int ksu_proc_add(pid_t pid, enum ksu_proc_state state)
 	return 0;
 }
 
-static void ksu_proc_remove(pid_t pid)
+static void __maybe_unused ksu_proc_remove(pid_t pid)
 {
 	struct ksu_proc_entry *entry;
 
@@ -272,7 +278,7 @@ static long ksu_ioctl(struct file *file, unsigned int cmd,
 	case KSU_IOC_VERSION:
 		ret = ksu_get_version(version_buf, sizeof(version_buf));
 		if (ret > 0)
-			ret = copy_to_user((char __user *)arg, version_buf, ret) ? -EFAULT : ret;
+			ret = copy_to_user((char __user *)arg, version_buf, ret + 1) ? -EFAULT : 0;
 		break;
 
 	default:
@@ -305,6 +311,18 @@ static int ksu_version_show(struct seq_file *m, void *v)
 	return 0;
 }
 
+static int ksu_version_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, ksu_version_show, NULL);
+}
+
+static const struct proc_ops ksu_version_proc_fops = {
+	.proc_open = ksu_version_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
+};
+
 static int ksu_status_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, "enabled: %d\n", ksu_gs.enabled);
@@ -315,13 +333,13 @@ static int ksu_status_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-static int ksu_proc_open(struct inode *inode, struct file *file)
+static int ksu_status_open(struct inode *inode, struct file *file)
 {
 	return single_open(file, ksu_status_show, NULL);
 }
 
-static const struct proc_ops ksu_proc_fops = {
-	.proc_open = ksu_proc_open,
+static const struct proc_ops ksu_status_proc_fops = {
+	.proc_open = ksu_status_open,
 	.proc_read = seq_read,
 	.proc_lseek = seq_lseek,
 	.proc_release = single_release,
@@ -355,10 +373,11 @@ int __init ksu_init(void)
 		goto unregister_chrdev;
 	}
 
-	ksu_class = class_create(THIS_MODULE);
-	if (IS_ERR(ksu_class))
+	ksu_class = class_create("ksu");
+	if (IS_ERR(ksu_class)) {
+		ret = PTR_ERR(ksu_class);
 		goto del_cdev;
-	ksu_class->name = "ksu";
+	}
 
 	ksu_device = device_create(ksu_class, NULL, ksu_dev_t, NULL, "ksu");
 	if (IS_ERR(ksu_device)) {
@@ -369,8 +388,8 @@ int __init ksu_init(void)
 	/* Create proc entries */
 	ksu_proc_dir = proc_mkdir("ksu", NULL);
 	if (ksu_proc_dir) {
-		ksu_proc_version = proc_create("version", 0444, ksu_proc_dir, NULL);
-		ksu_proc_status = proc_create("status", 0444, ksu_proc_dir, NULL);
+		ksu_proc_version = proc_create("version", 0444, ksu_proc_dir, &ksu_version_proc_fops);
+		ksu_proc_status = proc_create("status", 0444, ksu_proc_dir, &ksu_status_proc_fops);
 	}
 
 	pr_info("KernelSU initialized successfully\n");
@@ -387,6 +406,17 @@ unregister_chrdev:
 
 void __exit ksu_exit(void)
 {
+	struct ksu_proc_entry *entry, *tmp;
+
+	/* Free tracked process entries */
+	mutex_lock(&ksu_gs.lock);
+	list_for_each_entry_safe(entry, tmp, &ksu_gs.procs, list) {
+		list_del(&entry->list);
+		kfree(entry);
+	}
+	ksu_gs.proc_count = 0;
+	mutex_unlock(&ksu_gs.lock);
+
 	/* Remove proc entries */
 	if (ksu_proc_status)
 		proc_remove(ksu_proc_status);

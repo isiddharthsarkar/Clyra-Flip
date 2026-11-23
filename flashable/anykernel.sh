@@ -63,11 +63,12 @@ else
   abort "Kernel Image $KERNEL_IMG not found in zip. Aborting..."
 fi
 
-# --- Verify DTB for this device -------------------------------------------
+# --- Optional DTB for this device ------------------------------------------
 if [ -f "dtb/${DEVICE}.dtb" ]; then
+  cp "dtb/${DEVICE}.dtb" "dtb"
   ui_print "Using DTB: dtb/${DEVICE}.dtb"
 else
-  abort "DTB for $DEVICE not found in zip. Aborting..."
+  ui_print "Keeping stock ROM DTB"
 fi
 
 ui_print " "
@@ -110,24 +111,17 @@ set_perm_recursive 0 0 755 644 $RAMDISK/*;
 set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
 } # end attributes
 
-# vendor_boot shell variables
-BLOCK=vendor_boot;
-IS_SLOT_DEVICE=1;
-RAMDISK_COMPRESSION=auto;
-PATCH_VBMETA_FLAG=auto;
+# vendor_boot install (only if custom DTB provided in zip)
+if [ -f "dtb" ] && [ -e "$byname/vendor_boot$slot" ]; then
+  BLOCK=$byname/vendor_boot$slot;
+  IS_SLOT_DEVICE=0;
+  RAMDISK_COMPRESSION=auto;
+  PATCH_VBMETA_FLAG=auto;
 
-# reset for vendor_boot patching
-reset_ak;
-
-# vendor_boot install
-# For ruan/dizi, vendor_boot contains the DTB and modules.
-# Use split_boot to skip ramdisk unpack (vendor_boot v3 format on SM7435).
-split_boot;
-
-# Replace DTB if included in zip root (dtb/ directory)
-# AnyKernel3 will use dtb from zip root if present
-
-write_boot;
+  reset_ak;
+  split_boot;
+  write_boot;
+fi
 ## end vendor_boot install
 
 ui_print " "
