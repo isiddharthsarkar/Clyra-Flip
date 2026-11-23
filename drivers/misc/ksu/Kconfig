@@ -3,21 +3,21 @@
 # KernelSU configuration
 #
 
-menu "KernelSU"
+menu "KernelSU Next"
 
 config KERNEL_SU
-	bool "KernelSU - Kernel-level root solution for Android"
+	bool "KernelSU Next - Kernel-level root solution for Android"
 	depends on ARM64
 	select SYSFS
 	select SYSCTL
 	select INET
 	select NET
 	help
-	  KernelSU is a kernel-level root solution for Android devices.
+	  KernelSU Next is a kernel-level root solution for Android devices.
 	  It provides root access at the kernel level, allowing Magisk-like
 	  functionality without modifying the boot image ramdisk.
 
-	  KernelSU works by hijacking the kernel's credential system to
+	  KernelSU Next works by hijacking the kernel's credential system to
 	  grant root privileges to specific processes, and provides a
 	  hide feature to conceal root from detection apps.
 
@@ -26,10 +26,10 @@ config KERNEL_SU
 if KERNEL_SU
 
 config KERNEL_SU_VERSION
-	string "KernelSU version"
-	default "0.9.0"
+	string "KernelSU Next version"
+	default "1.0.5-next"
 	help
-	  The version string of KernelSU.
+	  The version string of KernelSU Next.
 
 config KSU_DEBUG
 	bool "Enable KernelSU debug messages"

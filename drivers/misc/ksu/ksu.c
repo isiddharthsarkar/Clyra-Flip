@@ -32,7 +32,7 @@
 
 /* Module information */
 MODULE_AUTHOR("KernelSU Contributors");
-MODULE_DESCRIPTION("KernelSU - Kernel-level root solution for Android");
+MODULE_DESCRIPTION("KernelSU Next - Kernel-level root solution for Android");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION(KSU_VERSION);
 
@@ -392,7 +392,7 @@ int __init ksu_init(void)
 		ksu_proc_status = proc_create("status", 0444, ksu_proc_dir, &ksu_status_proc_fops);
 	}
 
-	pr_info("KernelSU initialized successfully\n");
+	pr_info("KernelSU Next initialized successfully\n");
 	return 0;
 
 destroy_class:
@@ -433,7 +433,7 @@ void __exit ksu_exit(void)
 	cdev_del(&ksu_cdev);
 	unregister_chrdev_region(ksu_dev_t, 1);
 
-	pr_info("KernelSU exited\n");
+	pr_info("KernelSU Next exited\n");
 }
 
 module_init(ksu_init);

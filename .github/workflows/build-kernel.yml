@@ -88,64 +88,69 @@ jobs:
       - name: Setup AOSP clang
         run: |
           set -euo pipefail
-          # Install AOSP-compatible clang. Ubuntu system clang 21.x is too new
-          # and produces different symbol CRCs, breaking KMI compatibility with
-          # stock vendor modules. AOSP clang is mandatory - no fallback.
-          CLANG_VERSION=""
-          
-          # Try installing clang-17, 16, 15, or 14 directly from Ubuntu repos
-          for VER in 17 16 15 14; do
-            echo "Trying clang-${VER} from Ubuntu repos..."
-            sudo apt-get update -qq
-            if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -qiE "unable to locate package|not a valid"; then
-              echo "clang-${VER} not in Ubuntu repos"
-              continue
-            fi
-            if command -v clang-${VER} >/dev/null 2>&1; then
-              CLANG_VERSION=${VER}
-              echo "clang-${VER} installed from Ubuntu repos"
-              break
-            fi
-          done
-          
-          # If not in Ubuntu repos, try LLVM apt repository
-          if [ -z "$CLANG_VERSION" ]; then
-            echo "Adding LLVM apt repository..."
-            wget -q -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
-            UBUNTU_CODENAME=$(lsb_release -cs)
+          # Install AOSP clang (clang-r416183b) for full KMI compatibility with stock modules.
+          # Fallback to Ubuntu/LLVM repos if git clone is unavailable.
+          mkdir -p "$HOME/clyra-tools"
+          AOSP_CLANG_DIR="$HOME/clyra-tools/aosp-clang"
+
+          echo "Attempting to acquire official AOSP clang-r416183b toolchain..."
+          if git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git "$AOSP_CLANG_DIR" 2>/dev/null && [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
+            echo "Official AOSP clang-r416183b successfully acquired"
+            echo "CLANG_DIR=$AOSP_CLANG_DIR" >> $GITHUB_ENV
+            "$AOSP_CLANG_DIR/bin/clang" --version
+          else
+            echo "AOSP git clone unavailable; falling back to package repos..."
+            rm -rf "$AOSP_CLANG_DIR"
+            CLANG_VERSION=""
             for VER in 17 16 15 14; do
-              echo "Trying clang-${VER} via LLVM repo for ${UBUNTU_CODENAME}..."
-              echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${VER} main" | sudo tee /etc/apt/sources.list.d/llvm.list
-              sudo apt-get update -qq 2>&1 | tail -5
+              echo "Trying clang-${VER} from Ubuntu repos..."
+              sudo apt-get update -qq
               if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -qiE "unable to locate package|not a valid"; then
-                echo "clang-${VER} not available via LLVM repo for ${UBUNTU_CODENAME}"
+                echo "clang-${VER} not in Ubuntu repos"
                 continue
               fi
               if command -v clang-${VER} >/dev/null 2>&1; then
                 CLANG_VERSION=${VER}
-                echo "clang-${VER} installed via LLVM repo"
+                echo "clang-${VER} installed from Ubuntu repos"
                 break
               fi
             done
+            if [ -z "$CLANG_VERSION" ]; then
+              echo "Adding LLVM apt repository..."
+              wget -q -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+              UBUNTU_CODENAME=$(lsb_release -cs)
+              for VER in 17 16 15 14; do
+                echo "Trying clang-${VER} via LLVM repo for ${UBUNTU_CODENAME}..."
+                echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${VER} main" | sudo tee /etc/apt/sources.list.d/llvm.list
+                sudo apt-get update -qq 2>&1 | tail -5
+                if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -qiE "unable to locate package|not a valid"; then
+                  echo "clang-${VER} not available via LLVM repo for ${UBUNTU_CODENAME}"
+                  continue
+                fi
+                if command -v clang-${VER} >/dev/null 2>&1; then
+                  CLANG_VERSION=${VER}
+                  echo "clang-${VER} installed via LLVM repo"
+                  break
+                fi
+              done
+            fi
+            if [ -z "$CLANG_VERSION" ]; then
+              echo "ERROR: No AOSP-compatible clang could be installed" >&2
+              exit 1
+            fi
+            mkdir -p "$AOSP_CLANG_DIR/bin"
+            ln -sf /usr/bin/clang-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/clang"
+            ln -sf /usr/bin/clang++-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/clang++"
+            ln -sf /usr/bin/llvm-ar-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-ar" 2>/dev/null || true
+            ln -sf /usr/bin/llvm-nm-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-nm" 2>/dev/null || true
+            ln -sf /usr/bin/llvm-objcopy-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-objcopy" 2>/dev/null || true
+            ln -sf /usr/bin/llvm-strip-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-strip" 2>/dev/null || true
+            ln -sf /usr/bin/llvm-readelf-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-readelf" 2>/dev/null || true
+            ln -sf /usr/bin/llvm-objdump-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-objdump" 2>/dev/null || true
+            echo "CLANG_DIR=$AOSP_CLANG_DIR" >> $GITHUB_ENV
+            echo "Using AOSP-compatible clang-${CLANG_VERSION}:"
+            "$AOSP_CLANG_DIR/bin/clang" --version
           fi
-          
-          if [ -z "$CLANG_VERSION" ]; then
-            echo "ERROR: No AOSP-compatible clang could be installed" >&2
-            exit 1
-          fi
-          # Create directory structure expected by build.sh: CLANG_DIR/bin/clang
-          mkdir -p "$HOME/clyra-tools/aosp-clang/bin"
-          ln -sf /usr/bin/clang-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/clang"
-          ln -sf /usr/bin/clang++-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/clang++"
-          ln -sf /usr/bin/llvm-ar-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/llvm-ar" 2>/dev/null || true
-          ln -sf /usr/bin/llvm-nm-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/llvm-nm" 2>/dev/null || true
-          ln -sf /usr/bin/llvm-objcopy-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/llvm-objcopy" 2>/dev/null || true
-          ln -sf /usr/bin/llvm-strip-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/llvm-strip" 2>/dev/null || true
-          ln -sf /usr/bin/llvm-readelf-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/llvm-readelf" 2>/dev/null || true
-          ln -sf /usr/bin/llvm-objdump-${CLANG_VERSION} "$HOME/clyra-tools/aosp-clang/bin/llvm-objdump" 2>/dev/null || true
-          echo "CLANG_DIR=$HOME/clyra-tools/aosp-clang" >> $GITHUB_ENV
-          echo "Using AOSP-compatible clang-${CLANG_VERSION}:"
-          "$HOME/clyra-tools/aosp-clang/bin/clang" --version
 
       - name: Determine build matrix
         id: matrix
@@ -232,7 +237,8 @@ jobs:
             git config user.email "clyra-flip@github-actions"
             git config user.name "Clyra-Flip CI"
             git add build-diagnostics.txt
-            git commit -m "CI: build diagnostics from run ${{ github.run_id }}" || true
+            git commit -m "CI: build diagnostics from run ${{ github.run_id }} [skip ci]" || true
+            git pull --rebase origin main || true
             git push origin main || true
           fi
 
@@ -271,7 +277,7 @@ jobs:
           printf 'Devices: ruan, dizi\n' >> /tmp/release-notes.md
           printf 'Android: 14, 15, 16, 17\n' >> /tmp/release-notes.md
           printf 'Compiler: AOSP clang-r416183b (or NDK fallback)\n' >> /tmp/release-notes.md
-          printf 'Features: KernelSU, susfs, CAF/Qualcomm platform support\n\n' >> /tmp/release-notes.md
+          printf 'Features: KernelSU Next, susfs, CAF/Qualcomm platform support, SELinux Enforcing\n\n' >> /tmp/release-notes.md
           printf 'Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version.\n' >> /tmp/release-notes.md
           cat /tmp/release-notes.md
 

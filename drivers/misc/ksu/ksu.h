@@ -19,8 +19,8 @@
 #include <linux/fs.h>
 #include <linux/device.h>
 
-/* KernelSU version */
-#define KSU_VERSION "0.9.0"
+/* KernelSU Next version */
+#define KSU_VERSION "1.0.5-next"
 
 /* Maximum number of root-enabled processes tracked */
 #define KSU_MAX_PROCS 4096
