@@ -355,11 +355,10 @@ int __init ksu_init(void)
 		goto unregister_chrdev;
 	}
 
-	ksu_class = class_create(THIS_MODULE, "ksu");
-	if (IS_ERR(ksu_class)) {
-		ret = PTR_ERR(ksu_class);
+	ksu_class = class_create(THIS_MODULE);
+	if (IS_ERR(ksu_class))
 		goto del_cdev;
-	}
+	ksu_class->name = "ksu";
 
 	ksu_device = device_create(ksu_class, NULL, ksu_dev_t, NULL, "ksu");
 	if (IS_ERR(ksu_device)) {
