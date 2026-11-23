@@ -20,7 +20,6 @@ config ARCH_QCOM_CAF
 	select QCOM_SPMI_WRAPPER
 	select QCOM_GENI_SE
 	select QCOM_GENI_SMEM_IPC
-	select QCOM_RPMT_ENA
 	select QCOM_RPMH
 	select QCOM_RPMH_ADSP
 	select QCOM_RPMT

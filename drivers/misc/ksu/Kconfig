@@ -52,7 +52,6 @@ config KSU_SUSFS
 	bool "Enable susfs (SU Filesystem)"
 	default y
 	depends on KERNEL_SU
-	select FS_POSIX_ACL
 	help
 	  susfs is a virtual filesystem used by KernelSU for
 	  communication between the kernel module and userspace

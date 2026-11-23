@@ -13,9 +13,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/of.h>
-#include <linux/of_address.h>
-#include <linux/platform_device.h>
+#include <linux/string.h>
 
 MODULE_AUTHOR("Clyra-Flip Contributors");
 MODULE_DESCRIPTION("CAF Qualcomm platform core driver for SM7435");

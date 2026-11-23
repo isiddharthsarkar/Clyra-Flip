@@ -13,7 +13,6 @@
 
 #include <linux/fs.h>
 #include <linux/mount.h>
-#include <linux/pagemap.h>
 
 /* susfs superblock magic */
 #define SUSFS_MAGIC 0x53554653 /* "SUFS" */

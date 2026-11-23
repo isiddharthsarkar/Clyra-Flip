@@ -57,10 +57,8 @@ static int susfs_fill_super(struct super_block *sb, void *data, int silent)
 	root_inode->i_fop = &simple_dir_operations;
 
 	sb->s_root = d_make_root(root_inode);
-	if (!sb->s_root) {
-		iput(root_inode);
+	if (!sb->s_root)
 		return -ENOMEM;
-	}
 
 	ret = susfs_create_files(sb, sb->s_root);
 	if (ret)

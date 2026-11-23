@@ -47,6 +47,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # =========================================================================
   # Team RUAN Division: Redmi Pad Pro 5G (SM7435 / parrot)
@@ -101,7 +105,6 @@ jobs:
             unzip \
             zip \
             python3 \
-            python3-pip \
             gcc-aarch64-linux-gnu \
             gcc-arm-linux-gnueabi \
             rsync \
@@ -268,7 +271,6 @@ jobs:
             unzip \
             zip \
             python3 \
-            python3-pip \
             gcc-aarch64-linux-gnu \
             gcc-arm-linux-gnueabi \
             rsync \
@@ -495,10 +497,9 @@ jobs:
             gh release upload v1.0.0 "$ZIP" --clobber
           else
             echo "Creating GitHub Release v1.0.0..."
-            gh release create v1.0.0 \
+            gh release create v1.0.0 "$ZIP" \
               --title "Clyra-Flip Kernel v1.0.0" \
               --notes-file /tmp/release-notes.md
-            gh release upload v1.0.0 "$ZIP" --clobber
           fi
           echo "Release asset upload complete!"
 

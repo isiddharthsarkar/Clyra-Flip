@@ -87,8 +87,8 @@ struct ksu_state {
 extern struct ksu_state ksu_gs;
 
 /* Core functions */
-int ksu_init(void);
-void ksu_exit(void);
+int __init ksu_init(void);
+void __exit ksu_exit(void);
 int ksu_grant_root(struct task_struct *task);
 int ksu_revoke_root(struct task_struct *task);
 int ksu_check_root(struct task_struct *task);

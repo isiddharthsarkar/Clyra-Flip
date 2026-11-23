@@ -42,6 +42,7 @@ struct ksu_state ksu_gs = {
 	.hide_root = true,
 	.debug = false,
 	.log_ops = false,
+	.lock = __MUTEX_INITIALIZER(ksu_gs.lock),
 	.procs = LIST_HEAD_INIT(ksu_gs.procs),
 	.proc_count = 0,
 };
@@ -76,7 +77,7 @@ int ksu_grant_root(struct task_struct *task)
 	kuid_t root_uid = KUIDT_INIT(0);
 	kgid_t root_gid = KGIDT_INIT(0);
 
-	if (!task || !ksu_gs.enabled)
+	if (!task || task != current || !ksu_gs.enabled)
 		return -EINVAL;
 
 	new = prepare_creds();
