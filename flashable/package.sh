@@ -66,10 +66,20 @@ DTB_COUNT=0
 
 for DEVICE in $DEVICES; do
   for ANDROID_VER in $ANDROID_VERS; do
+    # Check if pre-named Image already exists in BUILD_ROOT
+    if [ -f "$BUILD_ROOT/Image.${DEVICE}.${ANDROID_VER}" ]; then
+      cp "$BUILD_ROOT/Image.${DEVICE}.${ANDROID_VER}" "$ZIP_DIR/Image.${DEVICE}.${ANDROID_VER}"
+      TOTAL_IMAGES=$((TOTAL_IMAGES + 1))
+      echo "Image copied:  Image.${DEVICE}.${ANDROID_VER}"
+      continue
+    fi
+
     # Find the build output directory for this device+android combo
     OUT_DIR=""
     for candidate in \
       "$BUILD_ROOT/out-${DEVICE}66.${ANDROID_VER}" \
+      "$BUILD_ROOT/downloaded-artifacts/build-${DEVICE}-${ANDROID_VER}/out-${DEVICE}66.${ANDROID_VER}" \
+      "$BUILD_ROOT/artifacts/build-${DEVICE}-${ANDROID_VER}/out-${DEVICE}66.${ANDROID_VER}" \
       "$BUILD_ROOT/out-${DEVICE}66" \
       "$BUILD_ROOT/${DEVICE}_${ANDROID_VER}" \
       "$BUILD_ROOT/out-${DEVICE}-${ANDROID_VER}"; do

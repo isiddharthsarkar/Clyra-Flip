@@ -1,18 +1,30 @@
-name: Build Clyra-Flip Kernel
+name: Build Clyra-Flip Kernel (Enterprise Matrix Pipeline)
 
 on:
   workflow_dispatch:
     inputs:
       device:
-        description: 'Device to build (ruan, dizi, or all)'
+        description: 'Device team to run (ruan, dizi, or all)'
         required: false
         default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'ruan'
+          - 'dizi'
       android:
-        description: 'Android version (android14, android15, android16, android17, or all)'
+        description: 'Android version target (android14, android15, android16, android17, or all)'
         required: false
         default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'android14'
+          - 'android15'
+          - 'android16'
+          - 'android17'
       upload_release:
-        description: 'Upload zip to GitHub Release v1.0.0'
+        description: 'Publish zip to GitHub Release v1.0.0'
         required: false
         default: 'true'
         type: choice
@@ -36,15 +48,37 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  # =========================================================================
+  # Team RUAN Division: Redmi Pad Pro 5G (SM7435 / parrot)
+  # 4 Workers running in parallel across Android 14, 15, 16, 17
+  # =========================================================================
+  build-ruan:
+    name: "RUAN Team: ${{ matrix.android }}"
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.device == 'all' || github.event.inputs.device == 'ruan'
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        android: [android14, android15, android16, android17]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check version filter
+        id: filter
+        run: |
+          REQ="${{ github.event.inputs.android || 'all' }}"
+          if [ "$REQ" != "all" ] && [ "$REQ" != "${{ matrix.android }}" ]; then
+            echo "Skipping ${{ matrix.android }} as $REQ was explicitly requested."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install build dependencies
+        if: steps.filter.outputs.skip != 'true'
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -78,169 +112,310 @@ jobs:
             llvm \
             lld
 
-      - name: Verify cross compilers
-        run: |
-          which aarch64-linux-gnu-gcc || echo "WARNING: aarch64-linux-gnu-gcc not found"
-          which arm-linux-gnueabi-gcc || echo "WARNING: arm-linux-gnueabi-gcc not found"
-          aarch64-linux-gnu-gcc --version | head -1 || true
-          arm-linux-gnueabi-gcc --version | head -1 || true
+      - name: Cache AOSP Clang toolchain
+        if: steps.filter.outputs.skip != 'true'
+        id: cache-clang
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/clyra-tools/aosp-clang
+          key: aosp-clang-r416183b-v1
 
-      - name: Setup AOSP clang
+      - name: Setup AOSP Clang
+        if: steps.filter.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          # Install AOSP clang (clang-r416183b) for full KMI compatibility with stock modules.
-          # Fallback to Ubuntu/LLVM repos if git clone is unavailable.
           mkdir -p "$HOME/clyra-tools"
           AOSP_CLANG_DIR="$HOME/clyra-tools/aosp-clang"
 
-          echo "Attempting to acquire official AOSP clang-r416183b toolchain..."
-          if git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git "$AOSP_CLANG_DIR" 2>/dev/null && [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
-            echo "Official AOSP clang-r416183b successfully acquired"
-            echo "CLANG_DIR=$AOSP_CLANG_DIR" >> $GITHUB_ENV
-            "$AOSP_CLANG_DIR/bin/clang" --version
+          if [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
+            echo "AOSP Clang restored from cache."
           else
-            echo "AOSP git clone unavailable; falling back to package repos..."
-            rm -rf "$AOSP_CLANG_DIR"
-            CLANG_VERSION=""
-            for VER in 17 16 15 14; do
-              echo "Trying clang-${VER} from Ubuntu repos..."
-              sudo apt-get update -qq
-              if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -qiE "unable to locate package|not a valid"; then
-                echo "clang-${VER} not in Ubuntu repos"
-                continue
-              fi
-              if command -v clang-${VER} >/dev/null 2>&1; then
-                CLANG_VERSION=${VER}
-                echo "clang-${VER} installed from Ubuntu repos"
-                break
-              fi
-            done
-            if [ -z "$CLANG_VERSION" ]; then
-              echo "Adding LLVM apt repository..."
-              wget -q -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
-              UBUNTU_CODENAME=$(lsb_release -cs)
+            echo "Acquiring official AOSP clang-r416183b toolchain..."
+            if git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git "$AOSP_CLANG_DIR" 2>/dev/null && [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
+              echo "AOSP clang-r416183b successfully acquired."
+            else
+              echo "AOSP git clone unavailable; falling back to package repos..."
+              rm -rf "$AOSP_CLANG_DIR"
+              CLANG_VERSION=""
               for VER in 17 16 15 14; do
-                echo "Trying clang-${VER} via LLVM repo for ${UBUNTU_CODENAME}..."
-                echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${VER} main" | sudo tee /etc/apt/sources.list.d/llvm.list
-                sudo apt-get update -qq 2>&1 | tail -5
+                echo "Trying clang-${VER} from Ubuntu repos..."
+                sudo apt-get update -qq
                 if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -qiE "unable to locate package|not a valid"; then
-                  echo "clang-${VER} not available via LLVM repo for ${UBUNTU_CODENAME}"
                   continue
                 fi
                 if command -v clang-${VER} >/dev/null 2>&1; then
                   CLANG_VERSION=${VER}
-                  echo "clang-${VER} installed via LLVM repo"
                   break
                 fi
               done
-            fi
-            if [ -z "$CLANG_VERSION" ]; then
-              echo "ERROR: No AOSP-compatible clang could be installed" >&2
-              exit 1
-            fi
-            mkdir -p "$AOSP_CLANG_DIR/bin"
-            ln -sf /usr/bin/clang-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/clang"
-            ln -sf /usr/bin/clang++-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/clang++"
-            ln -sf /usr/bin/llvm-ar-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-ar" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-nm-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-nm" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-objcopy-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-objcopy" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-strip-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-strip" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-readelf-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-readelf" 2>/dev/null || true
-            ln -sf /usr/bin/llvm-objdump-${CLANG_VERSION} "$AOSP_CLANG_DIR/bin/llvm-objdump" 2>/dev/null || true
-            echo "CLANG_DIR=$AOSP_CLANG_DIR" >> $GITHUB_ENV
-            echo "Using AOSP-compatible clang-${CLANG_VERSION}:"
-            "$AOSP_CLANG_DIR/bin/clang" --version
-          fi
-
-      - name: Determine build matrix
-        id: matrix
-        run: |
-          set -euo pipefail
-          DEVICE="${{ github.event.inputs.device }}"
-          ANDROID="${{ github.event.inputs.android }}"
-          # Default to "all" when running on push (no inputs)
-          [ -z "$DEVICE" ] && DEVICE="all"
-          [ -z "$ANDROID" ] && ANDROID="all"
-          if [ "$DEVICE" = "all" ]; then
-            DEVICES="ruan dizi"
-          else
-            DEVICES="$DEVICE"
-          fi
-          if [ "$ANDROID" = "all" ]; then
-            ANDROIDS="android14 android15 android16 android17"
-          else
-            ANDROIDS="$ANDROID"
-          fi
-          echo "devices=$DEVICES" >> $GITHUB_OUTPUT
-          echo "androids=$ANDROIDS" >> $GITHUB_OUTPUT
-
-      - name: Build all kernel combinations
-        run: |
-          set -uo pipefail
-          CLANG_DIR="${CLANG_DIR:-$HOME/clyra-tools/system-clang}"
-          echo "Using CLANG_DIR: $CLANG_DIR"
-          ls -la "$CLANG_DIR/bin/clang" || echo "WARNING: clang not found at expected path"
-          DIAG="/tmp/build-diagnostics.txt"
-          {
-            echo "Build Diagnostics"
-            echo "================="
-            echo "CLANG_DIR: $CLANG_DIR"
-            echo "clang version: $("$CLANG_DIR/bin/clang" --version 2>/dev/null | head -1)"
-            echo ""
-          } > "$DIAG"
-          FAILED=0
-          for dev in ${{ steps.matrix.outputs.devices }}; do
-            for ver in ${{ steps.matrix.outputs.androids }}; do
-              echo "=========================================="
-              echo "Building $dev $ver"
-              echo "=========================================="
-              {
-                echo "--- $dev $ver ---"
-              } >> "$DIAG"
-              if ./build.sh "$CLANG_DIR" "$dev" "$ver" >> "$DIAG" 2>&1; then
-                if [ -f "out-${dev}66.${ver}/arch/arm64/boot/Image" ]; then
-                  echo "SUCCESS: $dev $ver built"
-                  echo "RESULT: PASS - Image found" >> "$DIAG"
-                else
-                  echo "ERROR: Build succeeded but Image not found for $dev $ver"
-                  ls -la "out-${dev}66.${ver}/arch/arm64/boot/" 2>/dev/null || echo "No boot dir"
-                  ls -la "out-${dev}66.${ver}/arch/arm64/boot/" 2>/dev/null >> "$DIAG" || echo "No boot dir" >> "$DIAG"
-                  echo "RESULT: FAIL - Image not found despite build success" >> "$DIAG"
-                  FAILED=1
-                fi
-              else
-                EXIT_CODE=$?
-                echo "ERROR: Build failed for $dev $ver with exit code $EXIT_CODE"
-                echo "RESULT: FAIL - build.sh exited with code $EXIT_CODE" >> "$DIAG"
-                FAILED=1
+              if [ -n "$CLANG_VERSION" ]; then
+                mkdir -p "$AOSP_CLANG_DIR/bin"
+                ln -sf "$(which clang-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/clang"
+                ln -sf "$(which clang++-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/clang++"
+                ln -sf "$(which ld.lld-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/ld.lld"
+                ln -sf "$(which llvm-ar-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-ar"
+                ln -sf "$(which llvm-nm-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-nm"
+                ln -sf "$(which llvm-objcopy-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-objcopy"
+                ln -sf "$(which llvm-objdump-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-objdump"
+                ln -sf "$(which llvm-readelf-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-readelf"
+                ln -sf "$(which llvm-strip-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-strip"
               fi
-              echo "" >> "$DIAG"
-            done
-          done
-          echo "" >> "$DIAG"
-          if [ $FAILED -eq 0 ]; then
-            echo "All builds passed"
-            echo "OVERALL: ALL PASS" >> "$DIAG"
+            fi
+          fi
+
+          if [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
+            echo "CLANG_DIR=$AOSP_CLANG_DIR" >> $GITHUB_ENV
+            "$AOSP_CLANG_DIR/bin/clang" --version
           else
-            echo "Some builds failed"
-            echo "OVERALL: SOME FAIL" >> "$DIAG"
+            echo "ERROR: Failed to initialize Clang toolchain."
             exit 1
           fi
 
-      - name: Save build diagnostics
-        if: always()
+      - name: Build ruan (${{ matrix.android }})
+        if: steps.filter.outputs.skip != 'true'
         run: |
-          set -e
-          DIAG="/tmp/build-diagnostics.txt"
-          if [ -f "$DIAG" ]; then
-            cp "$DIAG" build-diagnostics.txt
-            git config user.email "clyra-flip@github-actions"
-            git config user.name "Clyra-Flip CI"
-            git add build-diagnostics.txt
-            git commit -m "CI: build diagnostics from run ${{ github.run_id }} [skip ci]" || true
-            git pull --rebase origin main || true
-            git push origin main || true
+          set -euo pipefail
+          chmod +x build.sh
+          ./build.sh "$CLANG_DIR" ruan "${{ matrix.android }}" Image modules dtbs
+
+      - name: Verify build outputs
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          OUT="out-ruan66.${{ matrix.android }}"
+          if [ ! -f "$OUT/arch/arm64/boot/Image" ]; then
+            echo "ERROR: Kernel Image not found at $OUT/arch/arm64/boot/Image"
+            exit 1
           fi
+          echo "Kernel Image verified:"
+          ls -lh "$OUT/arch/arm64/boot/Image"
+
+      - name: Upload ruan ${{ matrix.android }} build artifact
+        if: steps.filter.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-ruan-${{ matrix.android }}
+          path: |
+            out-ruan66.${{ matrix.android }}/arch/arm64/boot/Image
+            out-ruan66.${{ matrix.android }}/arch/arm64/boot/dts/vendor/qcom/*.dtb
+            out-ruan66.${{ matrix.android }}/include/config/kernel.release
+          retention-days: 3
+
+      - name: Summary for ruan ${{ matrix.android }}
+        if: always() && steps.filter.outputs.skip != 'true'
+        run: |
+          OUT="out-ruan66.${{ matrix.android }}"
+          echo "### RUAN Division: ${{ matrix.android }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f "$OUT/arch/arm64/boot/Image" ]; then
+            SIZE=$(ls -lh "$OUT/arch/arm64/boot/Image" | awk '{print $5}')
+            echo "- **Status**: SUCCESS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Kernel Image**: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "- **Target**: Redmi Pad Pro 5G (ruan)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # =========================================================================
+  # Team DIZI Division: Redmi Pad Pro WiFi / POCO Pad (SM7435 / parrot)
+  # 4 Workers running in parallel across Android 14, 15, 16, 17
+  # =========================================================================
+  build-dizi:
+    name: "DIZI Team: ${{ matrix.android }}"
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.device == 'all' || github.event.inputs.device == 'dizi'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        android: [android14, android15, android16, android17]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check version filter
+        id: filter
+        run: |
+          REQ="${{ github.event.inputs.android || 'all' }}"
+          if [ "$REQ" != "all" ] && [ "$REQ" != "${{ matrix.android }}" ]; then
+            echo "Skipping ${{ matrix.android }} as $REQ was explicitly requested."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install build dependencies
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            curl \
+            wget \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            dwarves \
+            xz-utils \
+            tar \
+            gzip \
+            unzip \
+            zip \
+            python3 \
+            python3-pip \
+            gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabi \
+            rsync \
+            file \
+            make \
+            gcc \
+            clang \
+            llvm \
+            lld
+
+      - name: Cache AOSP Clang toolchain
+        if: steps.filter.outputs.skip != 'true'
+        id: cache-clang
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/clyra-tools/aosp-clang
+          key: aosp-clang-r416183b-v1
+
+      - name: Setup AOSP Clang
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/clyra-tools"
+          AOSP_CLANG_DIR="$HOME/clyra-tools/aosp-clang"
+
+          if [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
+            echo "AOSP Clang restored from cache."
+          else
+            echo "Acquiring official AOSP clang-r416183b toolchain..."
+            if git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git "$AOSP_CLANG_DIR" 2>/dev/null && [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
+              echo "AOSP clang-r416183b successfully acquired."
+            else
+              echo "AOSP git clone unavailable; falling back to package repos..."
+              rm -rf "$AOSP_CLANG_DIR"
+              CLANG_VERSION=""
+              for VER in 17 16 15 14; do
+                echo "Trying clang-${VER} from Ubuntu repos..."
+                sudo apt-get update -qq
+                if sudo apt-get install -y clang-${VER} llvm-${VER} lld-${VER} 2>&1 | grep -qiE "unable to locate package|not a valid"; then
+                  continue
+                fi
+                if command -v clang-${VER} >/dev/null 2>&1; then
+                  CLANG_VERSION=${VER}
+                  break
+                fi
+              done
+              if [ -n "$CLANG_VERSION" ]; then
+                mkdir -p "$AOSP_CLANG_DIR/bin"
+                ln -sf "$(which clang-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/clang"
+                ln -sf "$(which clang++-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/clang++"
+                ln -sf "$(which ld.lld-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/ld.lld"
+                ln -sf "$(which llvm-ar-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-ar"
+                ln -sf "$(which llvm-nm-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-nm"
+                ln -sf "$(which llvm-objcopy-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-objcopy"
+                ln -sf "$(which llvm-objdump-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-objdump"
+                ln -sf "$(which llvm-readelf-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-readelf"
+                ln -sf "$(which llvm-strip-${CLANG_VERSION})" "$AOSP_CLANG_DIR/bin/llvm-strip"
+              fi
+            fi
+          fi
+
+          if [ -x "$AOSP_CLANG_DIR/bin/clang" ]; then
+            echo "CLANG_DIR=$AOSP_CLANG_DIR" >> $GITHUB_ENV
+            "$AOSP_CLANG_DIR/bin/clang" --version
+          else
+            echo "ERROR: Failed to initialize Clang toolchain."
+            exit 1
+          fi
+
+      - name: Build dizi (${{ matrix.android }})
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          chmod +x build.sh
+          ./build.sh "$CLANG_DIR" dizi "${{ matrix.android }}" Image modules dtbs
+
+      - name: Verify build outputs
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          OUT="out-dizi66.${{ matrix.android }}"
+          if [ ! -f "$OUT/arch/arm64/boot/Image" ]; then
+            echo "ERROR: Kernel Image not found at $OUT/arch/arm64/boot/Image"
+            exit 1
+          fi
+          echo "Kernel Image verified:"
+          ls -lh "$OUT/arch/arm64/boot/Image"
+
+      - name: Upload dizi ${{ matrix.android }} build artifact
+        if: steps.filter.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dizi-${{ matrix.android }}
+          path: |
+            out-dizi66.${{ matrix.android }}/arch/arm64/boot/Image
+            out-dizi66.${{ matrix.android }}/arch/arm64/boot/dts/vendor/qcom/*.dtb
+            out-dizi66.${{ matrix.android }}/include/config/kernel.release
+          retention-days: 3
+
+      - name: Summary for dizi ${{ matrix.android }}
+        if: always() && steps.filter.outputs.skip != 'true'
+        run: |
+          OUT="out-dizi66.${{ matrix.android }}"
+          echo "### DIZI Division: ${{ matrix.android }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f "$OUT/arch/arm64/boot/Image" ]; then
+            SIZE=$(ls -lh "$OUT/arch/arm64/boot/Image" | awk '{print $5}')
+            echo "- **Status**: SUCCESS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Kernel Image**: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "- **Target**: Redmi Pad Pro WiFi / POCO Pad (dizi)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # =========================================================================
+  # Head Executive: Combines RUAN & DIZI deliverables into Universal Zip
+  # =========================================================================
+  head-package-and-release:
+    name: "Head Executive: Package Universal Flashable Zip & Release"
+    needs: [build-ruan, build-dizi]
+    if: always() && !cancelled() && (needs.build-ruan.result == 'success' || needs.build-ruan.result == 'skipped') && (needs.build-dizi.result == 'success' || needs.build-dizi.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all team build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          path: downloaded-artifacts
+
+      - name: Stage team deliverables
+        run: |
+          set -euo pipefail
+          echo "=== Staging deliverables from RUAN and DIZI teams ==="
+          ls -la downloaded-artifacts/ || echo "No downloaded-artifacts found"
+
+          find downloaded-artifacts -type d -name "out-*" | while read -r dir; do
+            target=$(basename "$dir")
+            echo "Staging $target from $dir..."
+            cp -r "$dir" .
+          done
+
+          echo "Staged directories:"
+          ls -d out-* 2>/dev/null || echo "No out-* directories staged"
 
       - name: Package universal flashable zip
         run: |
@@ -248,40 +423,61 @@ jobs:
           chmod +x flashable/package.sh
           ./flashable/package.sh .
 
-      - name: Verify zip contents
+      - name: Verify universal zip integrity
         run: |
           set -euo pipefail
           ZIP=$(ls clyra-flip-kernel-universal-*.zip 2>/dev/null | head -1)
           if [ -z "$ZIP" ]; then
-            echo "ERROR: No universal zip found"
-            ls -la *.zip 2>/dev/null || echo "No zip files at all"
+            echo "ERROR: Universal flashable zip not found!"
             exit 1
           fi
-          echo "Zip created: $ZIP"
+          echo "Universal Zip successfully packaged: $ZIP"
+          ls -lh "$ZIP"
+          echo "=== Zip Structure ==="
           unzip -l "$ZIP"
 
-      - name: Upload zip as workflow artifact
+      - name: Upload universal flashable zip as release artifact
         uses: actions/upload-artifact@v4
         with:
           name: clyra-flip-kernel-universal-zip
           path: clyra-flip-kernel-universal-*.zip
-          retention-days: 7
+          retention-days: 14
 
-      - name: Write release notes file
-        if: (github.event.inputs.upload_release == 'true' || github.event_name == 'push') && success()
+      - name: Prepare executive release notes
         run: |
-          printf 'Clyra-Flip Kernel v1.0.0\n\n' > /tmp/release-notes.md
-          printf 'Clyra-Flip Kernel 6.6.162-Clyra-Flip for ruan (Redmi Pad Pro 5G) and dizi (Redmi Pad Pro WiFi).\n\n' >> /tmp/release-notes.md
-          printf 'Built with GitHub Actions\n' >> /tmp/release-notes.md
-          printf 'Kernel: Linux 6.6.162-Clyra-Flip\n' >> /tmp/release-notes.md
-          printf 'Devices: ruan, dizi\n' >> /tmp/release-notes.md
-          printf 'Android: 14, 15, 16, 17\n' >> /tmp/release-notes.md
-          printf 'Compiler: AOSP clang-r416183b (or NDK fallback)\n' >> /tmp/release-notes.md
-          printf 'Features: KernelSU Next, KowSU, susfs, CAF/Qualcomm platform support, SELinux Enforcing\n\n' >> /tmp/release-notes.md
-          printf 'Flash via TWRP/OrangeFox recovery. Auto-detects device and Android version.\n' >> /tmp/release-notes.md
-          cat /tmp/release-notes.md
+          set -euo pipefail
+          REL_FILE="/tmp/release-notes.md"
+          cat << 'EOF' > "$REL_FILE"
+          # Clyra-Flip Kernel v1.0.0 (Universal Release)
 
-      - name: Upload to GitHub Release v1.0.0
+          Universal flashable AnyKernel3 kernel for **Xiaomi Redmi Pad Pro 5G (ruan)** and **Xiaomi Redmi Pad Pro WiFi / POCO Pad (dizi)** on Snapdragon 7s Gen 2 (SM7435).
+
+          ### Key Specifications & Features
+          - **Kernel Version**: Linux 6.6.162-Clyra-Flip (Long Term Support)
+          - **Root Management**: Multi-Manager support for **KernelSU Next (KSUN v1.0.5-next)** and **KowSU (v1.0.5-kowsu)**
+          - **Isolation**: **susfs v1.5.5** virtual filesystem with comprehensive root concealment
+          - **SELinux**: Strict **Enforcing** mode (`selinux_enforcing_boot = 1`)
+          - **OEM Compatibility**: Module signature enforcement relaxed (`# CONFIG_MODULE_SIG_FORCE is not set`) so stock Xiaomi `vendor_dlkm` modules load seamlessly
+          - **Hardware / CAF**: Full Qualcomm / Code Aurora Forum platform support across audio, camera, display, power, interconnect, and SMEM subsystems
+          - **Compiler**: AOSP Clang toolchain (`clang-r416183b`) for full Android KMI compatibility
+
+          ### Included Kernel Deliverables
+          Auto-detected at flash time by AnyKernel3:
+          - `Image.ruan.android14`, `Image.ruan.android15`, `Image.ruan.android16`, `Image.ruan.android17`
+          - `Image.dizi.android14`, `Image.dizi.android15`, `Image.dizi.android16`, `Image.dizi.android17`
+          - Qualcomm SM7435 Device Tree Blobs (`dtb/*.dtb`)
+
+          ### How to Flash
+          1. Download `clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip`
+          2. Boot device into TWRP or OrangeFox recovery
+          3. Select Install -> Flash Zip -> Swipe to confirm
+          4. Reboot System (Device and Android version are automatically recognized)
+          EOF
+
+          echo "Release notes generated:"
+          cat "$REL_FILE"
+
+      - name: Publish to GitHub Release v1.0.0
         if: (github.event.inputs.upload_release == 'true' || github.event_name == 'push') && success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -289,28 +485,29 @@ jobs:
           set -euo pipefail
           ZIP=$(ls clyra-flip-kernel-universal-*.zip 2>/dev/null | head -1)
           if [ -z "$ZIP" ]; then
-            echo "ERROR: No universal zip found for release upload"
+            echo "ERROR: No universal zip to upload"
             exit 1
           fi
-          echo "Uploading $ZIP to release v1.0.0..."
+
           which gh || { echo "ERROR: gh CLI not found"; exit 1; }
           if gh release view v1.0.0 --json tagName -q '.tagName' 2>/dev/null | grep -q "v1.0.0"; then
-            echo "Release v1.0.0 exists, uploading asset..."
+            echo "Release v1.0.0 exists, updating release asset..."
             gh release upload v1.0.0 "$ZIP" --clobber
           else
-            echo "Release v1.0.0 does not exist, creating it..."
+            echo "Creating GitHub Release v1.0.0..."
             gh release create v1.0.0 \
               --title "Clyra-Flip Kernel v1.0.0" \
               --notes-file /tmp/release-notes.md
             gh release upload v1.0.0 "$ZIP" --clobber
           fi
-          echo "Upload complete!"
+          echo "Release asset upload complete!"
 
-      - name: Print release URL
+      - name: Executive summary
         if: always()
         run: |
-          echo "========================================"
-          echo "Build complete!"
-          echo "Release: https://github.com/${{ github.repository }}/releases/tag/v1.0.0"
-          echo "Artifacts: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          echo "========================================"
+          echo "## Clyra-Flip Enterprise Matrix Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Department | Target | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **RUAN Division** | Redmi Pad Pro 5G (Android 14-17) | ${{ needs.build-ruan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **DIZI Division** | Redmi Pad Pro WiFi / POCO Pad (Android 14-17) | ${{ needs.build-dizi.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Head Executive** | Universal Flashable Packager | Completed |" >> $GITHUB_STEP_SUMMARY
