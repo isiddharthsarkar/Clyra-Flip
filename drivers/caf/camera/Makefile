@@ -3,6 +3,5 @@
 # Makefile for CAF Camera drivers
 #
 
-obj-$(CONFIG_CAMSS_QCOM) += camss.o
 obj-$(CONFIG_QCOM_CAMSS) += camss.o
 obj-$(CONFIG_QCOM_CAMERA_SENSOR) += camss-sensor.o

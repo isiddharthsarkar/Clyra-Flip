@@ -17,7 +17,7 @@
 MODULE_AUTHOR("Clyra-Flip Contributors");
 MODULE_DESCRIPTION("CAF DRM MSM HDMI driver");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("6.6.162");
 
 static int __init msm_hdmi_init(void)
 {

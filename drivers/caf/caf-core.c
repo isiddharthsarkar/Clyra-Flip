@@ -20,7 +20,7 @@
 MODULE_AUTHOR("Clyra-Flip Contributors");
 MODULE_DESCRIPTION("CAF Qualcomm platform core driver for SM7435");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("6.6.162");
 
 /* CAF platform data */
 struct caf_platform_data {

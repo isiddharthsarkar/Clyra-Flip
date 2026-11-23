@@ -17,7 +17,7 @@
 MODULE_AUTHOR("Clyra-Flip Contributors");
 MODULE_DESCRIPTION("CAF QCOM icc-rpmh driver");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("6.6.162");
 
 static int __init icc_rpmh_init(void)
 {

@@ -17,7 +17,7 @@
 MODULE_AUTHOR("Clyra-Flip Contributors");
 MODULE_DESCRIPTION("CAF QCOM qupv3-i2c driver");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("6.6.162");
 
 static int __init qupv3_i2c_init(void)
 {
