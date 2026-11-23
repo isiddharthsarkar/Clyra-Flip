@@ -33,7 +33,7 @@ FLASHABLE="$K/flashable"
 ZIP_DIR="$K/flashable-zip"
 
 # Detect kernel release from first available build dir
-REL="6.6.162-Clyra-Flip"
+REL="6.6.144-Clyra-Flip"
 for d in "$BUILD_ROOT"/out-ruan66* "$BUILD_ROOT"/out-dizi66*; do
   if [ -f "$d/include/config/kernel.release" ]; then
     REL=$(cat "$d/include/config/kernel.release")
@@ -44,6 +44,8 @@ done
 # Devices and Android versions to package
 DEVICES="ruan dizi"
 ANDROID_VERS="android14 android15 android16 android17"
+
+MISSING=0
 
 echo "=== Clyra-Flip AnyKernel3 Universal Flashable Zip Packager ==="
 echo "Build root:  $BUILD_ROOT"
@@ -66,20 +68,10 @@ DTB_COUNT=0
 
 for DEVICE in $DEVICES; do
   for ANDROID_VER in $ANDROID_VERS; do
-    # Check if pre-named Image already exists in BUILD_ROOT
-    if [ -f "$BUILD_ROOT/Image.${DEVICE}.${ANDROID_VER}" ]; then
-      cp "$BUILD_ROOT/Image.${DEVICE}.${ANDROID_VER}" "$ZIP_DIR/Image.${DEVICE}.${ANDROID_VER}"
-      TOTAL_IMAGES=$((TOTAL_IMAGES + 1))
-      echo "Image copied:  Image.${DEVICE}.${ANDROID_VER}"
-      continue
-    fi
-
     # Find the build output directory for this device+android combo
     OUT_DIR=""
     for candidate in \
       "$BUILD_ROOT/out-${DEVICE}66.${ANDROID_VER}" \
-      "$BUILD_ROOT/downloaded-artifacts/build-${DEVICE}-${ANDROID_VER}/out-${DEVICE}66.${ANDROID_VER}" \
-      "$BUILD_ROOT/artifacts/build-${DEVICE}-${ANDROID_VER}/out-${DEVICE}66.${ANDROID_VER}" \
       "$BUILD_ROOT/out-${DEVICE}66" \
       "$BUILD_ROOT/${DEVICE}_${ANDROID_VER}" \
       "$BUILD_ROOT/out-${DEVICE}-${ANDROID_VER}"; do
@@ -90,7 +82,8 @@ for DEVICE in $DEVICES; do
     done
 
     if [ -z "$OUT_DIR" ]; then
-      echo "WARNING: no build dir found for $DEVICE $ANDROID_VER, skipping"
+      echo "ERROR: no build dir found for $DEVICE $ANDROID_VER"
+      MISSING=1
       continue
     fi
 
@@ -120,17 +113,27 @@ for DEVICE in $DEVICES; do
       for dtb in "$DTB_DIR"/*.dtb; do
         if [ -f "$dtb" ]; then
           dtb_name=$(basename "$dtb")
-          # Only copy if not already present (DTB may be same across Android versions)
-          if [ ! -f "$ZIP_DIR/dtb/$dtb_name" ]; then
-            cp "$dtb" "$ZIP_DIR/dtb/$dtb_name"
-            DTB_COUNT=$((DTB_COUNT + 1))
-            echo "DTB copied:      $dtb_name"
-          fi
+          # Include Android version in filename to avoid overwriting
+          # different DTBs from different Android versions
+          cp "$dtb" "$ZIP_DIR/dtb/${dtb_name%.dtb}.${ANDROID_VER}.dtb"
+          DTB_COUNT=$((DTB_COUNT + 1))
+          echo "DTB copied:      ${dtb_name%.dtb}.${ANDROID_VER}.dtb"
         fi
       done
     fi
   done
 done
+
+if [ "$MISSING" -eq 1 ]; then
+  echo ""
+  echo "ERROR: Some build directories are missing. Build all combinations first:"
+  echo "  for dev in ruan dizi; do"
+  echo "    for ver in android14 android15 android16 android17; do"
+  echo "      ./build.sh <clang-dir> \$dev \$ver"
+  echo "    done"
+  echo "  done"
+  exit 1
+fi
 
 if [ "$TOTAL_IMAGES" -eq 0 ]; then
   echo ""
