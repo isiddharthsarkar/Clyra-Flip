@@ -9,29 +9,11 @@ config QCOM_PDC
 	help
 	  QCOM Power Debug Controller driver.
 
-config QCOM_RPMH
-	bool "QCOM Runtime Power Management Hierarchy"
-	default n
-	help
-	  QCOM RPMH driver for runtime power management.
-
 config QCOM_RPMT
 	bool "QCOM RPM Timer"
 	default n
 	help
 	  QCOM RPM Timer driver.
-
-config QCOM_CPR
-	bool "QCOM Critical Path Regression"
-	default n
-	help
-	  QCOM CPR driver.
-
-config QCOM_LLCC
-	bool "QCOM Last Level Cache Coherency"
-	default n
-	help
-	  QCOM LLCC driver.
 
 config QCOM_WATCHDOG
 	bool "QCOM Watchdog timer"
