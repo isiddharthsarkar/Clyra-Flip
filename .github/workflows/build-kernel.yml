@@ -1,5 +1,9 @@
 name: Build Clyra-Flip Kernel (Enterprise Matrix Pipeline)
 
+# CI WORKFLOWS DISABLED - No workflows should start automatically.
+# All commits must include [skip ci]. Manual workflow_dispatch only.
+# To re-enable, restore the push/workflow_dispatch triggers above.
+
 on:
   workflow_dispatch:
     inputs:
@@ -26,23 +30,13 @@ on:
       upload_release:
         description: 'Publish zip to GitHub Release v1.0.0'
         required: false
-        default: 'true'
+        default: 'false'
         type: choice
         options:
           - 'true'
           - 'false'
 
-  push:
-    branches:
-      - main
-    paths:
-      - 'build.sh'
-      - 'flashable/**'
-      - '.github/workflows/build-kernel.yml'
-      - 'arch/arm64/configs/vendor/**'
-      - 'build.config.*'
-      - 'drivers/misc/ksu/**'
-      - 'drivers/caf/**'
+  # push trigger removed to prevent automatic CI runs
 
 permissions:
   contents: write

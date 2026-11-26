@@ -1,6 +1,6 @@
 ### AnyKernel3 Ramdisk Mod Script
-## Clyra-Flip Kernel 6.6.162-Clyra-Flip — Universal for Xiaomi ruan & dizi (SM7435)
-## Auto-detects device AND Android version — flash and reboot, no choices needed.
+## Clyra-Flip Kernel 6.6.162-Clyra-Flip - Universal for Xiaomi ruan & dizi (SM7435)
+## Auto-detects device AND Android version - flash and reboot, no choices needed.
 
 ### AnyKernel setup
 # global properties

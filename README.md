@@ -16,6 +16,7 @@ It delivers a clean, unified experience across HyperOS, AOSP, and custom ROMs, p
 - **Code Aurora Forum (CAF) Platform**: Complete Qualcomm CAF infrastructure covering audio, camera (CAMSS), display (MSM DRM/DPU), power management (SPMI, RPMH, PDC, CPR, LLCC), interconnect, and shared memory (SMEM).
 - **Universal Flashable Zip**: Single AnyKernel3 package supporting both devices (`ruan` and `dizi`) across Android 14, 15, 16, and 17 with automatic hardware and ROM detection.
 - **Redmi & POCO Pen Support**: Full active stylus support (`BTN_STYLUS`, `BTN_STYLUS2`, pressure sensitivity).
+- **Bug Fixes & Stability**: Resolved Kconfig symbol type conflicts, KSU concurrency race conditions, `ksu_revoke_root()` implementation, susfs module lifecycle, `package.sh` error handling and DTB deduplication, and OrangeFox kernel naming compatibility.
 
 ---
 
@@ -49,12 +50,14 @@ Clyra-Flip uses AnyKernel3 to patch the kernel image directly into your active b
 
 ### Steps
 
-1. Download the latest universal zip: `clyra-flip-kernel-universal-6.6.162-Clyra-Flip.zip` from [Releases](https://github.com/isiddharthsarkar/Clyra-Flip/releases).
+1. Download the latest universal zip: `clyra-flip-kernel-universal-6.6.162-Clyra-Flip-<timestamp>.zip` from [Releases](https://github.com/isiddharthsarkar/Clyra-Flip/releases).
 2. Boot your tablet into custom recovery (**TWRP** or **OrangeFox**).
 3. Select **Install** -> Choose the `.zip` file -> **Swipe to Flash**.
 4. Reboot to System.
 
 > **Note**: AnyKernel3 auto-detects your device model (`ruan` vs `dizi`) and your installed Android version (14 to 17) automatically. No manual choices are required.
+>
+> **OrangeFox Note**: The kernel string uses a hyphen (not em dash) so OrangeFox correctly displays the kernel version instead of truncating it.
 
 ---
 
@@ -93,17 +96,20 @@ export CLANG_DIR=/path/to/clang-r416183b
 ./flashable/package.sh .
 ```
 
+### package.sh Behavior
+
+- **Missing build directories**: If any device+Android combination is missing, `package.sh` reports an error and exits instead of silently producing an incomplete zip.
+- **DTB deduplication**: DTBs are saved with Android version suffix (e.g. `dtb_name.android14.dtb`) to prevent different DTBs from different Android versions from overwriting each other.
+- **Timestamp**: Zip filenames include a UTC timestamp (`YYYYMMDD-HHMM`) for unique versioning.
+- **Modules**: Compiled loadable kernel modules (`.ko`) are harvested from build output and included in the zip.
+
 ---
 
-## Enterprise CI Matrix Pipeline
+## CI / Workflow Status
 
-The repository uses an enterprise team pipeline in GitHub Actions:
+**All GitHub Actions CI workflows are disabled.** No workflows start on push. The `build-kernel.yml` workflow remains in the repository for reference but has no `push` trigger. Manual `workflow_dispatch` runs can be triggered from the GitHub Actions tab with `upload_release` defaulting to `false`.
 
-- **RUAN Division (`build-ruan`)**: Builds Android 14, 15, 16, and 17 targets in parallel.
-- **DIZI Division (`build-dizi`)**: Builds Android 14, 15, 16, and 17 targets in parallel.
-- **Head Executive (`head-package-and-release`)**: Collects all 8 compiled artifacts, packages the universal AnyKernel3 zip, and uploads the release asset.
-
-Total CI run time is reduced from 5–6 hours sequentially to **~25–35 minutes** via matrix parallelization and AOSP Clang caching.
+All commits to this repository must include `[skip ci]` in the commit message.
 
 ---
 
@@ -113,22 +119,42 @@ Total CI run time is reduced from 5–6 hours sequentially to **~25–35 minutes
 ├── arch/arm64/configs/vendor/  # Device and Android version Kconfig fragments
 ├── build.sh                    # Core build orchestration script
 ├── build.config.*              # GKI build definitions per device & version
-├── drivers/
+├── drivers/\
 │   ├── caf/                    # Qualcomm Code Aurora Forum subsystems
 │   │   ├── audio/              # QDSP6 ADSP and WCD audio codec
 │   │   ├── camera/             # CAMSS ISP and sensor subsystem
 │   │   ├── connectivity/       # ICC, GPIO, PINCTRL, QUPv3 I2C, USB PHY
 │   │   ├── display/            # MSM DRM display, DPU, HDMI
-│   │   ├── power/              # SPMI, PDC, RPMH, CPR, LLCC, clocks
-│   │   └── smem/               # Shared memory (SMEM) & IPC
-│   └── misc/
+│   │   └── power/              # SPMI, PDC, RPMH, CPR, LLCC, clocks
+│   └── misc/\
 │       └── ksu/                # KernelSU Next, KowSU, and susfs drivers
 ├── flashable/                  # AnyKernel3 installer templates & packaging
-└── .github/workflows/          # Enterprise matrix GitHub Actions workflow
+└── .github/workflows/          # GitHub Actions workflow (CI disabled)
 ```
+
+---
+
+## Bug Fixes (v1.0.0)
+
+| Area | Bug | Fix |
+| :--- | :--- | :--- |
+| **OrangeFox naming** | Em dash in `kernel.string` caused OrangeFox to show "5.10.69 caramel v2" | Replaced em dash with hyphen in `flashable/anykernel.sh` |
+| **Kconfig duplicates** | Duplicate `QCOM_CPR`, `QCOM_RPMH`, `QCOM_GENI_SE`, `QCOM_SMEM`, `QCOM_LLCC`, `QCOM_RMTFS_MEM`, `QCOM_SMD_RPM` across `drivers/caf/Kconfig`, `drivers/caf/power/Kconfig`, and `drivers/soc/qcom/Kconfig` | Removed duplicates from CAF Kconfigs; canonical copies retained in `drivers/soc/qcom/Kconfig` |
+| **KSU race condition** | `ksu_proc_find()` called outside `mutex_lock()` in `ksu_proc_add()`, causing TOCTOU race | Moved `ksu_proc_find()` inside the mutex lock |
+| **ksu_revoke_root()** | Was a no-op (`return 0`) | Implemented with `prepare_creds()`/`commit_creds()` to actually revoke root credentials |
+| **susfs lifecycle** | `ksu_susfs_unregister()` not called in `ksu_exit()`, leaking filesystem registration | Added `ksu_susfs_unregister()` call in `ksu_exit()` |
+| **KSU Makefile** | Redundant `ksu-y`/`susfs-y` object definitions | Cleaned up to single definitions each |
+| **package.sh silent failure** | Missing build dirs caused silent `continue`, producing incomplete zips | Hard error on missing build dirs/images with clear `ERROR` messages |
+| **package.sh DTB dedup** | DTBs deduplicated by filename only, causing cross-Android-version overwrites | DTB filenames now include Android version suffix |
 
 ---
 
 ## License
 
-This project is licensed under the **GNU General Public License v2.0** (`GPL-2.0`). See [COPYING](file:///data/user/0/ai.antigem/files/home/Clyra-Flip/COPYING) for details.
+This project is licensed under the **GNU General Public License v2.0** (`GPL-2.0`). See [COPYING](COPYING) for details.
+
+---
+
+## Related Repositories
+
+- **Clyra-Vendor**: https://github.com/isiddharthsarkar/Clyra-Vendor — Vendor blobs, device trees, and HAL implementations for Xiaomi ruan/dizi (SM7435). Fully compatible with Clyra-Flip kernel builds.
